@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laporan Bulanan – Sistem Absensi PKL</title>
+  <meta name="description" content="Laporan rekap bulanan absensi peserta PKL" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg style="width:20px;height:20px;stroke:var(--accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h2>PKL TRACKER</h2>
+        <span>ABSENSI QR CODE</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <a href="index.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        Dashboard
+      </a>
+      <a href="scanner.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        Scan QR
+      </a>
+      <div class="nav-section-label">Data</div>
+      <a href="students.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Peserta PKL
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Jadwal
+      </a>
+      <div class="nav-section-label">Laporan</div>
+      <a href="report.html" class="nav-item active">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        Laporan Bulanan
+      </a>
+      <a href="evaluation.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v3.5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/></svg>
+        </span>
+        Penilaian Akhir
+      </a>
+      <div class="nav-section-label">Sistem</div>
+      <a href="settings.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Pengaturan
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">A</div>
+        <div class="user-info"><p>Admin</p><span>Administrator</span></div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Laporan Bulanan</h1>
+        <p id="topbar-date">Memuat...</p>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-time" id="topbar-time">00:00:00</span>
+        <button class="btn btn-primary btn-sm" id="btn-export-pdf">Export PDF</button>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- FILTER -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-body" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:16px;">
+          <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+            <label class="form-label">Bulan</label>
+            <select class="form-control" id="f-month" style="font-size:12px;padding:6px 10px;"></select>
+          </div>
+          <div class="form-group" style="margin:0;width:90px;">
+            <label class="form-label">Tahun</label>
+            <select class="form-control" id="f-year" style="font-size:12px;padding:6px 10px;"></select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+            <label class="form-label">Siswa</label>
+            <select class="form-control" id="f-student" style="font-size:12px;padding:6px 10px;">
+              <option value="">Semua Siswa</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-filter" style="margin-bottom:0;padding:8px 16px;">Cari</button>
+        </div>
+      </div>
+
+      <!-- REPORT CONTENT -->
+      <div id="report-content">
+
+        <!-- Summary Cards -->
+        <div class="stats-grid" id="report-stats" style="display:none;margin-bottom:20px;"></div>
+
+        <!-- Detail Table -->
+        <div class="card" id="report-table-card" style="display:none;">
+          <div class="card-header" style="padding:12px 16px;">
+            <h3 id="report-table-title">Rekap Absensi</h3>
+            <span id="report-period" class="badge badge-neutral"></span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none;border-radius:0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Siswa</th>
+                    <th>NIS</th>
+                    <th>Sekolah</th>
+                    <th>Shift</th>
+                    <th>Hadir</th>
+                    <th>Terlambat</th>
+                    <th>Alpha</th>
+                    <th>Izin</th>
+                    <th>Hari Kerja</th>
+                    <th>% Hadir</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="report-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Log (per siswa) -->
+        <div class="card" id="log-table-card" style="display:none;margin-top:16px;">
+          <div class="card-header" style="padding:12px 16px;">
+            <h3 id="log-table-title">Log Absensi Harian</h3>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none;border-radius:0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Hari</th>
+                    <th>Jam Masuk</th>
+                    <th>Status Masuk</th>
+                    <th>Jam Pulang</th>
+                    <th>Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const monthSel = document.getElementById('f-month');
+  for (let m = 1; m <= 12; m++) {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = getMonthName(m);
+    if (m === new Date().getMonth() + 1) opt.selected = true;
+    monthSel.appendChild(opt);
+  }
+  const yearSel = document.getElementById('f-year');
+  const curYear = new Date().getFullYear();
+  for (let y = curYear - 1; y <= curYear + 1; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (y === curYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+  const stuSel = document.getElementById('f-student');
+  DB.getStudents().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    stuSel.appendChild(opt);
+  });
+  renderReport();
+});
+
+document.getElementById('btn-filter').addEventListener('click', renderReport);
+
+function renderReport() {
+  const month = parseInt(document.getElementById('f-month').value);
+  const year = parseInt(document.getElementById('f-year').value);
+  const studentFilter = document.getElementById('f-student').value;
+
+  let students = DB.getStudents();
+  if (studentFilter) students = students.filter(s => s.id === studentFilter);
+
+  if (students.length === 0) {
+    document.getElementById('report-stats').style.display = 'none';
+    document.getElementById('report-table-card').style.display = 'none';
+    document.getElementById('log-table-card').style.display = 'none';
+    showToast('warning', 'Siswa Tidak Ada', 'Tambahkan siswa terlebih dahulu');
+    return;
+  }
+
+  const allStats = students.map(s => ({ student: s, stats: Attendance.getMonthStats(s.id, year, month) }));
+  const totalHadir = allStats.reduce((acc, x) => acc + x.stats.hadir, 0);
+  const totalTerlambat = allStats.reduce((acc, x) => acc + x.stats.terlambat, 0);
+  const totalAlpha = allStats.reduce((acc, x) => acc + x.stats.alpha, 0);
+  const avgPct = allStats.length > 0 ? Math.round(allStats.reduce((acc, x) => acc + x.stats.pct, 0) / allStats.length) : 0;
+
+  const statsGrid = document.getElementById('report-stats');
+  statsGrid.style.display = 'grid';
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="stat-info"><div class="value">${totalHadir}</div><div class="label">Total Hadir (Hari)</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon yellow"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="stat-info"><div class="value">${totalTerlambat}</div><div class="label">Total Terlambat</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+      <div class="stat-info"><div class="value">${totalAlpha}</div><div class="label">Total Alpha</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="stat-info"><div class="value">${avgPct}%</div><div class="label">Rata-rata Kehadiran</div></div>
+    </div>
+  `;
+
+  const tableCard = document.getElementById('report-table-card');
+  tableCard.style.display = 'block';
+  document.getElementById('report-table-title').textContent = `Rekap Absensi — ${getMonthName(month)} ${year}`;
+  document.getElementById('report-period').textContent = `${getMonthName(month)} ${year}`;
+
+  const tbody = document.getElementById('report-tbody');
+  tbody.innerHTML = allStats.map((row, i) => {
+    const { student: s, stats } = row;
+    const statusBadge = stats.pct >= 80 ? `<span class="badge badge-success">Baik</span>` : stats.pct >= 60 ? `<span class="badge badge-warning">Cukup</span>` : `<span class="badge badge-danger">Buruk</span>`;
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${s.photo ? `<img src="${s.photo}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" />` : `<div class="student-avatar" style="width:24px;height:24px;font-size:10px;">${getInitials(s.name)}</div>`}
+            <span style="font-weight:600;color:var(--text-primary);">${s.name}</span>
+          </div>
+        </td>
+        <td>${s.nis}</td>
+        <td>${s.school}</td>
+        <td><span class="badge badge-neutral">${s.shift === 'P' ? 'Pagi' : 'Siang'}</span></td>
+        <td style="color:var(--success);font-weight:700;">${stats.hadir}</td>
+        <td style="color:var(--warning);font-weight:700;">${stats.terlambat}</td>
+        <td style="color:var(--danger);font-weight:700;">${stats.alpha}</td>
+        <td style="color:var(--info);font-weight:700;">${stats.izin}</td>
+        <td>${stats.workdays}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="progress-bar" style="width:50px;"><div class="progress-fill" style="width:${stats.pct}%;"></div></div>
+            <strong>${stats.pct}%</strong>
+          </div>
+        </td>
+        <td>${statusBadge}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const logCard = document.getElementById('log-table-card');
+  if (studentFilter) {
+    logCard.style.display = 'block';
+    const s = students[0];
+    document.getElementById('log-table-title').textContent = `Log Harian — ${s.name} (${getMonthName(month)} ${year})`;
+    const days = getDaysInMonth(year, month);
+    const logTbody = document.getElementById('log-tbody');
+    let rows = '';
+    const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    for (let d = 1; d <= days; d++) {
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isWknd = isWeekend(dateStr);
+      const dow = new Date(dateStr + 'T00:00:00').getDay();
+      const records = DB.getAttendance().filter(a => a.studentId === s.id && a.date === dateStr);
+      const masuk = records.find(r => r.type === 'masuk');
+      const pulang = records.find(r => r.type === 'pulang');
+      const izin = records.find(r => r.type === 'izin');
+
+      if (isWknd) {
+        rows += `<tr style="opacity:0.4;">
+          <td>${formatDateShort(dateStr)}</td>
+          <td>${dayNames[dow]}</td>
+          <td colspan="4" style="text-align:center;color:var(--text-muted);">Libur</td>
+        </tr>`;
+      } else {
+        const statusMasuk = masuk ? (masuk.status === 'warning' ? `<span class="badge badge-warning">Terlambat</span>` : `<span class="badge badge-success">Tepat</span>`) : (izin ? `<span class="badge badge-info">Izin</span>` : (dateStr > getToday() ? '' : `<span class="badge badge-danger">Alpha</span>`));
+        rows += `<tr>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${formatDateShort(dateStr)}</td>
+          <td>${dayNames[dow]}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${masuk ? masuk.time : '-'}</td>
+          <td>${statusMasuk}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${pulang ? pulang.time : '-'}</td>
+          <td>${izin?.keterangan || masuk?.statusLabel || '-'}</td>
+        </tr>`;
+      }
+    }
+    logTbody.innerHTML = rows;
+  } else {
+    logCard.style.display = 'none';
+  }
+}
+
+document.getElementById('btn-export-pdf').addEventListener('click', async () => {
+  showToast('info', 'Export PDF', 'Menyiapkan laporan...');
+  const { jsPDF } = window.jspdf;
+  const month = parseInt(document.getElementById('f-month').value);
+  const year = parseInt(document.getElementById('f-year').value);
+  const settings = DB.getSettings();
+
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const content = document.getElementById('report-content');
+
+  try {
+    const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, backgroundColor: '#090d16' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+
+    pdf.setFillColor(9, 13, 22);
+    pdf.rect(0, 0, pdfW, pdf.internal.pageSize.getHeight(), 'F');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(59, 130, 246);
+    pdf.text(`LAPORAN ABSENSI PKL — ${getMonthName(month).toUpperCase()} ${year}`, pdfW / 2, 12, { align: 'center' });
+    pdf.setFontSize(8);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(settings.institution, pdfW / 2, 17, { align: 'center' });
+
+    pdf.addImage(imgData, 'PNG', 0, 22, pdfW, pdfH - 22);
+    pdf.save(`Laporan-PKL-${getMonthName(month)}-${year}.pdf`);
+    showToast('success', 'PDF Berhasil', 'Laporan berhasil didownload');
+  } catch (e) {
+    showToast('error', 'Gagal', e.message);
+  }
+});
+</script>
+</body>
+</html>

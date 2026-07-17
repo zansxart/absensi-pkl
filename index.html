@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Sistem Absensi PKL</title>
+  <meta name="description" content="Dashboard absensi QR Code siswa PKL" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg style="width:20px;height:20px;stroke:var(--accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h2>PKL TRACKER</h2>
+        <span>ABSENSI QR CODE</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        Dashboard
+      </a>
+      <a href="scanner.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        Scan QR
+        <span class="nav-badge" id="nav-waiting">0</span>
+      </a>
+      <div class="nav-section-label">Data</div>
+      <a href="students.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Peserta PKL
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Jadwal
+      </a>
+      <div class="nav-section-label">Laporan</div>
+      <a href="report.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        Laporan Bulanan
+      </a>
+      <a href="evaluation.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v3.5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/></svg>
+        </span>
+        Penilaian Akhir
+      </a>
+      <div class="nav-section-label">Sistem</div>
+      <a href="settings.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Pengaturan
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">A</div>
+        <div class="user-info">
+          <p>Admin</p>
+          <span>Administrator</span>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Dashboard</h1>
+        <p id="topbar-date">Memuat...</p>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-time" id="topbar-time">00:00:00</span>
+        <a href="scanner.html" class="btn btn-primary btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          Scan QR
+        </a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="value" id="stat-hadir">0</div>
+            <div class="label">Hadir Hari Ini</div>
+            <div class="sub" id="stat-hadir-sub">dari 0 siswa</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="value" id="stat-terlambat">0</div>
+            <div class="label">Terlambat</div>
+            <div class="sub" id="stat-terlambat-sub">0 siswa</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="value" id="stat-alpha">0</div>
+            <div class="label">Belum Scan / Alpha</div>
+            <div class="sub" id="stat-alpha-sub">0 siswa</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="value" id="stat-total">0</div>
+            <div class="label">Total Peserta PKL</div>
+            <div class="sub" id="stat-total-sub">terdaftar</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- TODAY ATTENDANCE TABLE -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Rekap Kehadiran Hari Ini</h3>
+            <a href="scanner.html" class="btn btn-primary btn-sm">Scan</a>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="today-list">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                <p>Belum ada absensi hari ini</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK STATS / RECENT STUDENTS -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Statistik Kehadiran Bulan Ini</h3>
+            <a href="report.html" class="btn btn-secondary btn-sm">Detail</a>
+          </div>
+          <div class="card-body">
+            <div id="monthly-bars">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <p>Belum ada data</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div class="card">
+          <div class="card-header">
+            <h3>Daftar Peserta PKL</h3>
+            <a href="students.html" class="btn btn-secondary btn-sm">Kelola</a>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none;border-radius:0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Siswa</th>
+                    <th>Sekolah</th>
+                    <th>Shift</th>
+                    <th>Status Hari Ini</th>
+                    <th>% Bulan Ini</th>
+                  </tr>
+                </thead>
+                <tbody id="students-table">
+                  <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada siswa terdaftar</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    renderDashboard();
+  });
+
+  function renderDashboard() {
+    const students = DB.getStudents();
+    const today = getToday();
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const todayAttendance = DB.getTodayAttendance();
+
+    let hadir = 0, terlambat = 0;
+    const hadirIds = new Set();
+
+    todayAttendance.filter(a => a.type === 'masuk').forEach(a => {
+      hadirIds.add(a.studentId);
+      if (a.status === 'warning') terlambat++;
+      else hadir++;
+    });
+
+    const alpha = students.filter(s => !hadirIds.has(s.id)).length;
+    const totalHadir = hadirIds.size;
+
+    document.getElementById('stat-hadir').textContent = hadir;
+    document.getElementById('stat-hadir-sub').textContent = `dari ${students.length} siswa`;
+    document.getElementById('stat-terlambat').textContent = terlambat;
+    document.getElementById('stat-terlambat-sub').textContent = `${terlambat} siswa`;
+    document.getElementById('stat-alpha').textContent = alpha;
+    document.getElementById('stat-alpha-sub').textContent = `${alpha} siswa belum scan`;
+    document.getElementById('stat-total').textContent = students.length;
+
+    const navWaiting = document.getElementById('nav-waiting');
+    if (navWaiting) navWaiting.textContent = alpha;
+
+    const todayList = document.getElementById('today-list');
+    if (todayAttendance.length === 0) {
+      todayList.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg><p>Belum ada absensi hari ini</p></div>`;
+    } else {
+      const grouped = {};
+      todayAttendance.forEach(a => {
+        if (!grouped[a.studentId]) grouped[a.studentId] = { masuk: null, pulang: null };
+        grouped[a.studentId][a.type] = a;
+      });
+      const html = Object.entries(grouped).map(([sid, rec]) => {
+        const s = DB.getStudentById(sid);
+        if (!s) return '';
+        const masukTime = rec.masuk ? rec.masuk.time : '-';
+        const pulangTime = rec.pulang ? rec.pulang.time : '-';
+        const statusBadge = rec.masuk
+          ? (rec.masuk.status === 'warning'
+              ? `<span class="badge badge-warning">Terlambat</span>`
+              : `<span class="badge badge-success">Tepat Waktu</span>`)
+          : `<span class="badge badge-danger">Belum Masuk</span>`;
+        const avatarHtml = s.photo
+          ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
+          : `<div class="student-avatar" style="width:32px;height:32px;font-size:11px;">${getInitials(s.name)}</div>`;
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
+            ${avatarHtml}
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:13px;">${s.name}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${s.school}</div>
+            </div>
+            ${statusBadge}
+            <div style="text-align:right;font-size:11.5px;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">
+              <div>M: <strong>${masukTime}</strong></div>
+              <div>P: <strong>${pulangTime}</strong></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      todayList.innerHTML = html || `<div class="empty-state"><p>Belum ada data</p></div>`;
+    }
+
+    const monthlyBars = document.getElementById('monthly-bars');
+    if (students.length === 0) {
+      monthlyBars.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><p>Belum ada data</p></div>`;
+    } else {
+      monthlyBars.innerHTML = students.map(s => {
+        const stats = Attendance.getMonthStats(s.id, year, month);
+        const pct = stats.pct;
+        const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
+        const avatarHtml = s.photo
+          ? `<img src="${s.photo}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
+          : `<div class="student-avatar" style="width:28px;height:28px;font-size:10px;">${getInitials(s.name)}</div>`;
+        return `
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              ${avatarHtml}
+              <span style="font-size:12.5px;font-weight:600;flex:1;">${s.name}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:${color};font-weight:700;">${pct}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${pct}%;background:${color};"></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:2px;font-size:10.5px;color:var(--text-muted);">
+              <span>Hadir: ${stats.hadir}</span>
+              <span>Terlambat: ${stats.terlambat}</span>
+              <span>Alpha: ${stats.alpha}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const tbody = document.getElementById('students-table');
+    if (students.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada siswa terdaftar</td></tr>`;
+    } else {
+      tbody.innerHTML = students.map(s => {
+        const stats = Attendance.getMonthStats(s.id, year, month);
+        const avatarHtml = s.photo
+          ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
+          : `<div class="student-avatar">${getInitials(s.name)}</div>`;
+        const statusBadge = hadirIds.has(s.id)
+          ? (todayAttendance.find(a => a.studentId === s.id && a.type === 'masuk')?.status === 'warning'
+              ? `<span class="badge badge-warning">Terlambat</span>`
+              : `<span class="badge badge-success">Hadir</span>`)
+          : `<span class="badge badge-danger">Belum Hadir</span>`;
+        return `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                ${avatarHtml}
+                <div>
+                  <div style="font-weight:600;color:var(--text-primary);">${s.name}</div>
+                  <div style="font-size:11px;color:var(--text-muted);">${s.nis} • ${s.major}</div>
+                </div>
+              </div>
+            </td>
+            <td>${s.school}</td>
+            <td><span class="badge ${s.shift === 'P' ? 'badge-success' : 'badge-info'}">${s.shift === 'P' ? 'Pagi' : 'Siang'}</span></td>
+            <td>${statusBadge}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="progress-bar" style="width:60px;"><div class="progress-fill" style="width:${stats.pct}%;"></div></div>
+                <span style="font-size:12px;font-weight:600;">${stats.pct}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+</script>
+</body>
+</html>

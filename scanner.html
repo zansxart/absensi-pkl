@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scan QR â€“ Sistem Absensi PKL</title>
+  <meta name="description" content="Scan QR Code ID Card siswa PKL untuk absensi masuk dan pulang" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="node_modules/html5-qrcode/html5-qrcode.min.js"></script>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">ðŸŽ“</div>
+      <div class="logo-text">
+        <h2>PKL Tracker</h2>
+        <span>Sistem Absensi QR</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <a href="index.html" class="nav-item">
+        <span class="nav-icon">ðŸ </span> Dashboard
+      </a>
+      <a href="scanner.html" class="nav-item active">
+        <span class="nav-icon">ðŸ“·</span> Scan QR
+      </a>
+      <div class="nav-section-label">Data</div>
+      <a href="students.html" class="nav-item">
+        <span class="nav-icon">ðŸ‘¥</span> Peserta PKL
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-icon">ðŸ“…</span> Jadwal
+      </a>
+      <div class="nav-section-label">Laporan</div>
+      <a href="report.html" class="nav-item">
+        <span class="nav-icon">ðŸ“Š</span> Laporan Bulanan
+      </a>
+      <a href="evaluation.html" class="nav-item">
+        <span class="nav-icon">ðŸ†</span> Penilaian Akhir
+      </a>
+      <div class="nav-section-label">Sistem</div>
+      <a href="settings.html" class="nav-item">
+        <span class="nav-icon">âš™ï¸</span> Pengaturan
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">A</div>
+        <div class="user-info"><p>Admin</p><span>Administrator</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>ðŸ“· Scan QR Absensi</h1>
+        <p id="topbar-date">Memuat...</p>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-time" id="topbar-time">00:00:00</span>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- STATUS BAR -->
+      <div id="scan-status-bar" style="
+        display:flex; align-items:center; gap:12px; padding:12px 18px;
+        background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2);
+        border-radius:12px; margin-bottom:20px; font-size:14px;">
+        <span id="scan-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--warning);animation:pulse 1.5s infinite;flex-shrink:0;"></span>
+        <span id="scan-status-text">Kamera belum aktif â€” klik <strong>Mulai Kamera</strong></span>
+      </div>
+
+      <div class="scanner-container">
+
+        <!-- CAMERA BOX -->
+        <div class="scanner-box" style="flex:1;">
+          <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <h3 style="font-size:15px;font-weight:700;">Kamera Scan</h3>
+              <p style="font-size:12px;color:var(--text-muted);">Arahkan QR Code ID Card ke kamera</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-primary btn-sm" id="btn-start">â–¶ Mulai Kamera</button>
+              <button class="btn btn-secondary btn-sm" id="btn-stop" style="display:none;">â ¹ Stop</button>
+              <button class="btn btn-secondary btn-sm" id="btn-flip" style="display:none;" title="Ganti kamera">ðŸ”„</button>
+              <input type="file" id="qr-file-input" accept="image/*" style="display:none;" />
+              <button class="btn btn-secondary btn-sm" id="btn-upload-file">Upload Foto QR</button>
+            </div>
+          </div>
+
+          <!-- Camera feed -->
+          <div style="position:relative;min-height:340px;background:#000;border-radius:0 0 16px 16px;overflow:hidden;">
+            <div id="qr-reader" style="width:100%;"></div>
+
+            <!-- Placeholder sebelum kamera aktif -->
+            <div id="camera-placeholder" style="
+              position:absolute;inset:0;
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              background:rgba(0,0,0,0.85);color:var(--text-muted);gap:12px;">
+              <div style="font-size:64px;opacity:0.4;">ðŸ“·</div>
+              <p style="font-size:14px;">Klik <strong style="color:var(--accent)">Mulai Kamera</strong> untuk mengaktifkan scan</p>
+              <p style="font-size:12px;opacity:0.6;">Pastikan browser mengizinkan akses kamera</p>
+            </div>
+
+            <!-- Scan overlay frame -->
+            <div class="scanner-overlay" id="scan-overlay" style="display:none;">
+              <div class="scan-frame">
+                <div class="scan-corner tl"></div>
+                <div class="scan-corner tr"></div>
+                <div class="scan-corner bl"></div>
+                <div class="scan-corner br"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULT PANEL -->
+        <div class="scanner-result">
+
+          <!-- Result Card -->
+          <div class="result-card" id="result-card">
+            <div id="result-default">
+              <div style="font-size:56px;margin-bottom:12px;opacity:0.3;">ðŸŽ«</div>
+              <p style="font-size:14px;color:var(--text-muted);">Scan QR Code untuk melihat hasil absensi</p>
+            </div>
+            <div id="result-data" style="display:none;">
+              <div class="success-anim" id="result-anim">âœ…</div>
+              <div id="result-avatar-wrap" style="margin:12px auto 0;width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--border);"></div>
+              <div class="result-name" id="result-name">-</div>
+              <div class="result-school" id="result-school">-</div>
+              <div class="result-time" id="result-time">--:--</div>
+              <div class="result-status" id="result-status-badge">-</div>
+              <div id="result-detail" style="font-size:12px;color:var(--text-muted);"></div>
+            </div>
+            <div id="result-error" style="display:none;">
+              <div style="font-size:48px;margin-bottom:12px;">âš ï¸</div>
+              <div id="result-error-msg" style="font-size:14px;color:var(--danger);font-weight:600;"></div>
+            </div>
+          </div>
+
+          <!-- Log Hari Ini -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header">
+              <h3 style="font-size:14px;">ðŸ“‹ Log Hari Ini</h3>
+              <span id="log-count" class="badge badge-neutral">0</span>
+            </div>
+            <div style="max-height:260px;overflow-y:auto;">
+              <div class="scan-log" id="scan-log">
+                <div class="empty-state" style="padding:30px 20px;">
+                  <div class="empty-icon" style="font-size:32px;">ðŸ“­</div>
+                  <p>Belum ada scan</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Izin -->
+          <div class="card" style="margin-top:12px;">
+            <div class="card-header">
+              <h3 style="font-size:14px;">ðŸ“ Input Izin Manual</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Pilih Siswa</label>
+                <select class="form-control" id="izin-student" style="font-size:13px;">
+                  <option value="">-- Pilih siswa --</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Keterangan</label>
+                <input type="text" class="form-control" id="izin-keterangan" placeholder="Misal: Sakit, Keperluan keluarga..." style="font-size:13px;" />
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-izin" style="width:100%;">ðŸ“ Simpan Izin</button>
+            </div>
+          </div>
+
+        </div><!-- end scanner-result -->
+      </div><!-- end scanner-container -->
+
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+let html5QrCode = null;
+let cameras = [];
+let currentCameraIndex = 0;
+let scanning = false;
+let lastScanId = null;
+let scanCooldown = false;
+let nativeStream = null;
+let nativeVideo = null;
+let barcodeDetector = null;
+let fallbackScanTimer = null;
+let scanHintTimer = null;
+let scanFailureCount = 0;
+let lastFailureStatusAt = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateIzinStudents();
+  renderScanLog();
+});
+
+// =================== CAMERA ===================
+document.getElementById('btn-start').addEventListener('click', startCamera);
+document.getElementById('btn-stop').addEventListener('click', stopCamera);
+document.getElementById('btn-flip').addEventListener('click', flipCamera);
+
+// Logika pemindaian dari Upload File Foto
+document.getElementById('btn-upload-file').addEventListener('click', () => {
+  document.getElementById('qr-file-input').click();
+});
+
+document.getElementById('qr-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const shouldResumeCamera = scanning;
+  const resumeCameraIndex = currentCameraIndex;
+  if (shouldResumeCamera) await stopCamera();
+
+  setStatusBar('loading', 'Membaca file foto QR...');
+  
+  try {
+    const decodedText = await scanQrFromFile(file);
+    setStatusBar('active', 'Scan file foto berhasil!');
+    onScanSuccess(decodedText);
+  } catch (err) {
+    setStatusBar('error', 'Gagal membaca QR dari foto: ' + formatError(err));
+    showToast('error', 'Gagal Mendeteksi QR', 'Pastikan foto QR Code Anda jelas dan tidak silau.');
+  } finally {
+    if (shouldResumeCamera) await startCamera(resumeCameraIndex);
+  }
+  e.target.value = '';
+});
+
+async function startCamera(preferredCameraIndex = null) {
+  if (scanning) return;
+
+  stopScanHelpers();
+  clearReader();
+  scanFailureCount = 0;
+  lastFailureStatusAt = 0;
+
+  try {
+    setStatusBar('loading', 'Meminta izin kamera...');
+    if (typeof Html5Qrcode === 'undefined') {
+      await startNativeCamera(preferredCameraIndex);
+      return;
+    }
+
+    const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) {
+      await startNativeCamera(preferredCameraIndex);
+      return;
+    }
+    cameras = devices;
+    if (Number.isInteger(preferredCameraIndex)) {
+      currentCameraIndex = Math.max(0, Math.min(preferredCameraIndex, cameras.length - 1));
+    } else {
+      currentCameraIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
+      if (currentCameraIndex < 0) currentCameraIndex = 0;
+    }
+
+    html5QrCode = new Html5Qrcode('qr-reader');
+    const qrboxSize = getQrboxSize();
+    
+    // Gunakan string ID langsung dan hilangkan aspectRatio constraint agar kompatibel 100% dengan DroidCam
+    await html5QrCode.start(
+      cameras[currentCameraIndex].id,
+      {
+        fps: 12,
+        qrbox: { width: qrboxSize, height: qrboxSize },
+        disableFlip: false,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      },
+      onScanSuccess,
+      onScanFailure
+    );
+
+    const activeCamera = cameras[currentCameraIndex]?.label || `kamera ${currentCameraIndex + 1}`;
+    setCameraActiveUi(`Kamera aktif (${activeCamera}) - arahkan QR Code ke kotak scan`);
+    startNativeDetectorLoop();
+    setTimeout(() => setStatusBar('active', `Kamera aktif (${activeCamera}) - arahkan QR Code ke kotak scan`), 0);
+    setStatusBar('active', '🟢 Kamera aktif — arahkan QR Code');
+  } catch (err) {
+    console.error(err);
+    if (html5QrCode) {
+      try { await html5QrCode.clear(); } catch (e) {}
+      html5QrCode = null;
+      clearReader();
+    }
+    try {
+      await startNativeCamera(preferredCameraIndex);
+      return;
+    } catch (nativeErr) {
+      err = nativeErr || err;
+    }
+    const msg = formatError(err);
+    setStatusBar('error', '❌ Gagal mengakses kamera: ' + msg);
+    setStatusBar('error', 'Gagal mengakses kamera: ' + msg);
+    showToast('error', 'Kamera Error', msg);
+  }
+}
+
+async function stopCamera() {
+  stopScanHelpers();
+
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch (e) {}
+    try { await html5QrCode.clear(); } catch (e) {}
+    html5QrCode = null;
+  }
+
+  if (nativeStream) {
+    nativeStream.getTracks().forEach(track => track.stop());
+    nativeStream = null;
+    nativeVideo = null;
+  }
+
+  scanning = false;
+  clearReader();
+  document.getElementById('camera-placeholder').style.display = 'flex';
+  document.getElementById('scan-overlay').style.display = 'none';
+  document.getElementById('btn-start').style.display = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  document.getElementById('btn-flip').style.display = 'none';
+  setStatusBar('idle', 'Kamera dimatikan');
+}
+
+async function flipCamera() {
+  if (!scanning) return;
+  const nextCameraIndex = cameras.length > 0 ? (currentCameraIndex + 1) % cameras.length : 0;
+  await stopCamera();
+  await startCamera(nextCameraIndex);
+}
+
+// =================== QR SCAN ===================
+async function onScanSuccess(decodedText) {
+  if (scanCooldown) return;
+
+  const qrText = String(decodedText || '').trim();
+  if (!qrText) return;
+  if (qrText === lastScanId) return;
+
+  scanCooldown = true;
+  lastScanId = qrText;
+  stopScanHintTimer();
+  setStatusBar('loading', 'QR terbaca, memproses absensi...');
+
+  // Vibrate & beep
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  playBeep();
+
+  const studentId = extractStudentIdFromQr(qrText);
+
+  const result = Attendance.record(studentId);
+  showScanResult(result);
+  renderScanLog();
+
+  if (result.error) {
+    setStatusBar('error', 'QR terbaca, tapi ' + result.error);
+  } else {
+    setStatusBar('active', `${result.student.name} berhasil scan ${result.type}`);
+  }
+
+  setTimeout(() => {
+    scanCooldown = false;
+    lastScanId = null;
+    if (scanning) startScanHintTimer();
+  }, 3000);
+}
+
+function onScanFailure() {
+  scanFailureCount++;
+  const now = Date.now();
+  if (scanning && !scanCooldown && now - lastFailureStatusAt > 5000) {
+    lastFailureStatusAt = now;
+    setStatusBar('active', `Kamera aktif - membaca frame (${scanFailureCount}), QR belum terbaca`);
+  }
+  // Silent fail â€” tidak perlu tampilkan error untuk setiap frame
+}
+
+function extractStudentIdFromQr(decodedText) {
+  let value = String(decodedText || '').trim();
+
+  try {
+    const parsedUrl = new URL(value);
+    value = parsedUrl.searchParams.get('id') || parsedUrl.searchParams.get('studentId') || parsedUrl.hash.replace(/^#/, '') || value;
+  } catch (e) {}
+
+  if (value.startsWith('PKL_')) value = value.slice(4);
+  return value.trim();
+}
+
+async function scanQrFromFile(file) {
+  if (typeof Html5Qrcode !== 'undefined') {
+    const html5QrCodeFile = new Html5Qrcode('qr-reader');
+    try {
+      return await html5QrCodeFile.scanFile(file, true);
+    } finally {
+      try { await html5QrCodeFile.clear(); } catch(e) {}
+      clearReader();
+    }
+  }
+
+  if ('BarcodeDetector' in window && window.createImageBitmap) {
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const bitmap = await createImageBitmap(file);
+    const codes = await detector.detect(bitmap);
+    if (codes && codes.length > 0) return codes[0].rawValue;
+  }
+
+  throw new Error('Library scanner belum termuat. Pastikan koneksi internet aktif lalu refresh halaman.');
+}
+
+async function startNativeCamera(preferredCameraIndex = null) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Browser tidak mendukung akses kamera');
+  }
+  if (!('BarcodeDetector' in window)) {
+    throw new Error('Library scanner belum termuat dan browser ini tidak punya BarcodeDetector');
+  }
+
+  setStatusBar('loading', 'Mencoba scanner kamera bawaan browser...');
+
+  let videoConstraint = {
+    facingMode: { ideal: 'environment' },
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+  };
+
+  if (cameras.length > 0 && Number.isInteger(preferredCameraIndex)) {
+    currentCameraIndex = Math.max(0, Math.min(preferredCameraIndex, cameras.length - 1));
+    videoConstraint = { deviceId: { exact: cameras[currentCameraIndex].id } };
+  }
+
+  nativeStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint, audio: false });
+
+  try {
+    const videoInputs = (await navigator.mediaDevices.enumerateDevices())
+      .filter(device => device.kind === 'videoinput')
+      .map(device => ({ id: device.deviceId, label: device.label || 'Kamera' }));
+    if (videoInputs.length > 0) cameras = videoInputs;
+  } catch (e) {}
+
+  nativeVideo = document.createElement('video');
+  nativeVideo.setAttribute('playsinline', '');
+  nativeVideo.muted = true;
+  nativeVideo.autoplay = true;
+  nativeVideo.srcObject = nativeStream;
+  nativeVideo.style.width = '100%';
+  nativeVideo.style.display = 'block';
+
+  const reader = document.getElementById('qr-reader');
+  reader.innerHTML = '';
+  reader.appendChild(nativeVideo);
+  await nativeVideo.play();
+
+  setCameraActiveUi('Kamera aktif - scanner bawaan browser');
+  startNativeDetectorLoop(nativeVideo);
+}
+
+function startNativeDetectorLoop(videoElement = null) {
+  stopNativeDetectorLoop();
+  if (!('BarcodeDetector' in window)) return;
+
+  try {
+    barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+  } catch (e) {
+    return;
+  }
+
+  fallbackScanTimer = setInterval(async () => {
+    if (!scanning || scanCooldown) return;
+    const video = videoElement || nativeVideo || document.querySelector('#qr-reader video');
+    if (!video || video.readyState < 2) return;
+
+    try {
+      const codes = await barcodeDetector.detect(video);
+      if (codes && codes.length > 0 && codes[0].rawValue) {
+        onScanSuccess(codes[0].rawValue);
+      } else {
+        onScanFailure();
+      }
+    } catch (e) {
+      onScanFailure();
+    }
+  }, 600);
+}
+
+function stopNativeDetectorLoop() {
+  if (fallbackScanTimer) {
+    clearInterval(fallbackScanTimer);
+    fallbackScanTimer = null;
+  }
+}
+
+function setCameraActiveUi(message) {
+  scanning = true;
+  document.getElementById('camera-placeholder').style.display = 'none';
+  document.getElementById('scan-overlay').style.display = 'flex';
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-stop').style.display = '';
+  document.getElementById('btn-flip').style.display = cameras.length > 1 ? '' : 'none';
+  setStatusBar('active', message);
+  startScanHintTimer();
+}
+
+function getQrboxSize() {
+  const box = document.querySelector('.scanner-box');
+  const width = box ? box.clientWidth : 360;
+  return Math.max(180, Math.min(320, Math.floor(width * 0.68)));
+}
+
+function startScanHintTimer() {
+  stopScanHintTimer();
+  scanHintTimer = setTimeout(() => {
+    if (!scanning || scanCooldown) return;
+    setStatusBar('active', 'Kamera aktif - QR belum terbaca, coba dekatkan QR dan pastikan tidak blur');
+  }, 7000);
+}
+
+function stopScanHintTimer() {
+  if (scanHintTimer) {
+    clearTimeout(scanHintTimer);
+    scanHintTimer = null;
+  }
+}
+
+function stopScanHelpers() {
+  stopNativeDetectorLoop();
+  stopScanHintTimer();
+}
+
+function clearReader() {
+  const reader = document.getElementById('qr-reader');
+  if (reader) reader.innerHTML = '';
+}
+
+function formatError(err) {
+  if (!err) return 'Error tidak diketahui';
+  if (typeof err === 'string') return err;
+  return err.message || String(err);
+}
+
+function showScanResult(result) {
+  const card = document.getElementById('result-card');
+  const defaultEl = document.getElementById('result-default');
+  const dataEl = document.getElementById('result-data');
+  const errorEl = document.getElementById('result-error');
+
+  if (result.error) {
+    defaultEl.style.display = 'none';
+    dataEl.style.display = 'none';
+    errorEl.style.display = 'block';
+    document.getElementById('result-error-msg').textContent = result.error;
+    showToast('warning', 'Scan Gagal', result.error);
+    return;
+  }
+
+  const { student, type, status, statusLabel, record } = result;
+  defaultEl.style.display = 'none';
+  errorEl.style.display = 'none';
+  dataEl.style.display = 'block';
+
+  // Avatar
+  const avatarWrap = document.getElementById('result-avatar-wrap');
+  if (student.photo) {
+    avatarWrap.innerHTML = `<img src="${student.photo}" style="width:100%;height:100%;object-fit:cover;" />`;
+  } else {
+    avatarWrap.innerHTML = `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:white;">${getInitials(student.name)}</div>`;
+  }
+
+  // Emoji anim
+  const anim = document.getElementById('result-anim');
+  anim.style.animation = 'none';
+  anim.offsetHeight; // reflow
+  anim.style.animation = '';
+  anim.textContent = type === 'masuk' ? 'âœ…' : 'ðŸ‘‹';
+
+  document.getElementById('result-name').textContent = student.name;
+  document.getElementById('result-school').textContent = `${student.school} â€¢ ${student.major}`;
+  document.getElementById('result-time').textContent = record.time;
+
+  const badge = document.getElementById('result-status-badge');
+  const colors = { success: 'var(--success)', warning: 'var(--warning)', info: 'var(--info)' };
+  badge.textContent = `${type === 'masuk' ? 'ðŸ• Masuk' : 'ðŸƒ Pulang'} â€” ${statusLabel}`;
+  badge.style.background = status === 'success' ? 'var(--success-bg)' : status === 'warning' ? 'var(--warning-bg)' : 'var(--info-bg)';
+  badge.style.color = colors[status] || 'var(--text-primary)';
+
+  document.getElementById('result-detail').textContent =
+    type === 'masuk' ? `Jam masuk: ${record.time}` : `Jam pulang: ${record.time}`;
+
+  const toastType = status === 'warning' ? 'warning' : 'success';
+  showToast(toastType, `${student.name} â€” ${type === 'masuk' ? 'Masuk' : 'Pulang'}`, statusLabel);
+}
+
+// =================== LOG ===================
+function renderScanLog() {
+  const today = getToday();
+  const all = DB.getAttendance().filter(a => a.date === today && a.type !== 'izin');
+  all.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+  const container = document.getElementById('scan-log');
+  const count = document.getElementById('log-count');
+  count.textContent = all.length;
+
+  if (all.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon" style="font-size:32px;">ðŸ“­</div><p>Belum ada scan</p></div>`;
+    return;
+  }
+
+  container.innerHTML = all.map(a => {
+    const s = DB.getStudentById(a.studentId);
+    if (!s) return '';
+    const avatarHtml = s.photo
+      ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
+      : `<div class="log-avatar">${getInitials(s.name)}</div>`;
+    const typeLabel = a.type === 'masuk' ? 'ðŸ• Masuk' : 'ðŸƒ Pulang';
+    const cls = a.status === 'warning' ? 'badge-warning' : a.type === 'pulang' ? 'badge-info' : 'badge-success';
+    return `
+      <div class="log-item">
+        ${avatarHtml}
+        <div class="log-info">
+          <div class="log-name">${s.name}</div>
+          <div class="log-time">${typeLabel} â€” ${a.time}</div>
+        </div>
+        <span class="badge ${cls} log-status">${a.statusLabel}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// =================== IZIN MANUAL ===================
+function populateIzinStudents() {
+  const sel = document.getElementById('izin-student');
+  DB.getStudents().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById('btn-izin').addEventListener('click', () => {
+  const studentId = document.getElementById('izin-student').value;
+  const ket = document.getElementById('izin-keterangan').value;
+  if (!studentId) { showToast('warning', 'Pilih Siswa', 'Pilih siswa terlebih dahulu'); return; }
+  Attendance.markIzin(studentId, getToday(), ket);
+  showToast('success', 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} â€” Izin hari ini`);
+  document.getElementById('izin-keterangan').value = '';
+  renderScanLog();
+});
+
+// =================== STATUS BAR ===================
+function setStatusBar(type, msg) {
+  const dot = document.getElementById('scan-status-dot');
+  const text = document.getElementById('scan-status-text');
+  text.textContent = msg;
+  const dotColors = { active: 'var(--success)', idle: 'var(--text-muted)', loading: 'var(--warning)', error: 'var(--danger)' };
+  dot.style.background = dotColors[type] || 'var(--accent)';
+}
+
+// =================== BEEP ===================
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
+  } catch (e) { /* silent */ }
+}
+</script>
+</body>
+</html>

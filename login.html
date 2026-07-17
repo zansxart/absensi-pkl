@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Sistem Absensi PKL</title>
+  <meta name="description" content="Login PIN sistem absensi QR PKL" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .login-wrap {
+      width: 100%; max-width: 400px;
+      padding: 20px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* LOGO */
+    .login-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .login-logo .logo-circle {
+      width: 56px; height: 56px;
+      background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .login-logo h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .login-logo p { font-size: 13px; color: var(--text-muted); }
+
+    /* CARD */
+    .login-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .login-card h2 {
+      font-size: 16px; font-weight: 700;
+      text-align: center; margin-bottom: 6px;
+    }
+    .login-card .sub {
+      font-size: 12px; color: var(--text-muted);
+      text-align: center; margin-bottom: 24px;
+    }
+
+    /* PIN DOTS */
+    .pin-dots {
+      display: flex; justify-content: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .pin-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .pin-dot.filled {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+      transform: scale(1.15);
+    }
+    .pin-dot.error {
+      background: var(--danger);
+      border-color: var(--danger);
+      animation: dotShake 0.4s ease;
+    }
+    @keyframes dotShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* NUMPAD */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .num-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 10px;
+      font-size: 20px; font-weight: 700;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 2px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .num-btn sub {
+      font-size: 8px; letter-spacing: 0.1em;
+      color: var(--text-muted); font-weight: 500;
+      line-height: 1;
+    }
+    .num-btn:hover {
+      background: rgba(99,102,241,0.15);
+      border-color: rgba(99,102,241,0.4);
+      color: white;
+      transform: scale(1.04);
+    }
+    .num-btn:active {
+      transform: scale(0.95);
+      background: rgba(99,102,241,0.3);
+    }
+    .num-btn.del {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.2);
+      color: var(--danger);
+      font-size: 20px;
+    }
+    .num-btn.del:hover { background: rgba(239,68,68,0.2); }
+
+    .num-btn.zero { grid-column: 2; }
+
+    /* error msg */
+    .login-error {
+      display: none;
+      text-align: center; margin-top: 16px;
+      font-size: 13px; color: var(--danger);
+      font-weight: 500;
+      animation: fadeIn 0.3s ease;
+    }
+    .login-error.show { display: block; }
+
+    /* attempt warning */
+    .attempt-warn {
+      text-align: center; margin-top: 10px;
+      font-size: 12px; color: var(--warning);
+    }
+
+    /* institution name */
+    .inst-name {
+      text-align: center; margin-top: 24px;
+      font-size: 11px; color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="logo-circle">
+      <svg style="width:36px;height:36px;stroke:var(--accent);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+        <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+        <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+      </svg>
+    </div>
+    <h1>PKL Tracker</h1>
+    <p>Sistem Absensi QR Code</p>
+  </div>
+
+  <div class="login-card">
+    <h2 style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <svg style="width:16px;height:16px;stroke:var(--text-secondary);stroke-width:2;fill:none;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Masukkan PIN
+    </h2>
+    <p class="sub">Masukkan PIN 4-6 digit untuk mengakses sistem</p>
+
+    <!-- PIN Dots -->
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Numpad -->
+    <div class="numpad" id="numpad">
+      <button class="num-btn" data-n="1">1<sub></sub></button>
+      <button class="num-btn" data-n="2">2<sub>ABC</sub></button>
+      <button class="num-btn" data-n="3">3<sub>DEF</sub></button>
+      <button class="num-btn" data-n="4">4<sub>GHI</sub></button>
+      <button class="num-btn" data-n="5">5<sub>JKL</sub></button>
+      <button class="num-btn" data-n="6">6<sub>MNO</sub></button>
+      <button class="num-btn" data-n="7">7<sub>PQRS</sub></button>
+      <button class="num-btn" data-n="8">8<sub>TUV</sub></button>
+      <button class="num-btn" data-n="9">9<sub>WXYZ</sub></button>
+      <button class="num-btn" id="btn-clear" style="visibility:hidden;"></button>
+      <button class="num-btn zero" data-n="0">0</button>
+      <button class="num-btn del" id="btn-del">⌫</button>
+    </div>
+
+    <div class="login-error" id="login-error">PIN salah! Silakan coba lagi.</div>
+    <div class="attempt-warn" id="attempt-warn"></div>
+
+    <div class="inst-name" id="inst-name">Memuat...</div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+const DEFAULT_PIN = '1234';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 30 * 1000; // 30 detik lockout
+
+let pinEntry = '';
+let attempts = 0;
+let locked = false;
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded', () => {
+  // Jika sudah login, langsung redirect
+  if (isLoggedIn()) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // Tampilkan nama institusi
+  const settings = DB.getSettings();
+  document.getElementById('inst-name').textContent = settings.institution || 'PKL Tracker System';
+
+  // Cek lockout
+  checkLockout();
+
+  // Numpad buttons
+  document.querySelectorAll('.num-btn[data-n]').forEach(btn => {
+    btn.addEventListener('click', () => addDigit(btn.dataset.n));
+  });
+  document.getElementById('btn-del').addEventListener('click', deleteDigit);
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (locked) return;
+    if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+    else if (e.key === 'Backspace') deleteDigit();
+    else if (e.key === 'Enter') checkPin();
+  });
+});
+
+function isLoggedIn() {
+  const session = localStorage.getItem(SESSION_KEY);
+  if (!session) return false;
+  try {
+    const data = JSON.parse(session);
+    // Session valid 8 jam
+    if (Date.now() - data.ts < 8 * 60 * 60 * 1000) return true;
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) {}
+  return false;
+}
+
+// ===================== PIN INPUT =====================
+function getStoredPin() {
+  const s = DB.getSettings();
+  return s.pin || DEFAULT_PIN;
+}
+
+function addDigit(d) {
+  if (locked) return;
+  const maxLen = getStoredPin().length;
+  if (pinEntry.length >= maxLen) return;
+
+  pinEntry += d;
+  updateDots();
+
+  if (pinEntry.length >= maxLen) {
+    setTimeout(checkPin, 100);
+  }
+}
+
+function deleteDigit() {
+  if (locked) return;
+  pinEntry = pinEntry.slice(0, -1);
+  clearError();
+  updateDots();
+}
+
+function updateDots() {
+  const pinLen = getStoredPin().length;
+  // Rebuild dots jika panjang PIN berubah
+  const dotsContainer = document.getElementById('pin-dots');
+  const dots = dotsContainer.querySelectorAll('.pin-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('filled', i < pinEntry.length);
+    dot.classList.remove('error');
+  });
+}
+
+function checkPin() {
+  const stored = getStoredPin();
+  if (pinEntry === stored) {
+    // Success!
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() }));
+    attempts = 0;
+    localStorage.removeItem('pkl_lockout');
+
+    // Animasi sukses
+    document.querySelectorAll('.pin-dot').forEach(d => {
+      d.classList.add('filled');
+      d.style.background = 'var(--success)';
+      d.style.borderColor = 'var(--success)';
+    });
+    showToast('success', 'Berhasil!', 'Selamat datang di PKL Tracker');
+    setTimeout(() => window.location.href = 'index.html', 600);
+  } else {
+    attempts++;
+    localStorage.setItem('pkl_attempts', attempts);
+
+    // Animasi error
+    document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+    document.getElementById('login-error').classList.add('show');
+    if (attempts >= MAX_ATTEMPTS) {
+      startLockout();
+    } else {
+      const remaining = MAX_ATTEMPTS - attempts;
+      document.getElementById('attempt-warn').textContent = remaining > 0 ? `${remaining} percobaan tersisa sebelum dikunci` : '';
+    }
+    setTimeout(() => {
+      pinEntry = '';
+      updateDots();
+      clearError();
+    }, 900);
+  }
+}
+
+function clearError() {
+  document.getElementById('login-error').classList.remove('show');
+}
+
+function startLockout() {
+  const unlockAt = Date.now() + LOCKOUT_MS;
+  localStorage.setItem('pkl_lockout', unlockAt);
+  locked = true;
+  runLockoutTimer(unlockAt);
+}
+
+function checkLockout() {
+  const unlockAt = parseInt(localStorage.getItem('pkl_lockout') || '0');
+  if (!unlockAt || Date.now() >= unlockAt) {
+    localStorage.removeItem('pkl_lockout');
+    attempts = parseInt(localStorage.getItem('pkl_attempts') || '0');
+    return;
+  }
+  locked = true;
+  runLockoutTimer(unlockAt);
+}
+
+function runLockoutTimer(unlockAt) {
+  const warn = document.getElementById('attempt-warn');
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = 'Terlalu banyak percobaan!';
+  errEl.classList.add('show');
+
+  // Disable numpad
+  document.getElementById('numpad').style.opacity = '0.4';
+  document.getElementById('numpad').style.pointerEvents = 'none';
+
+  const tick = () => {
+    const remaining = Math.ceil((unlockAt - Date.now()) / 1000);
+    if (remaining <= 0) {
+      locked = false;
+      attempts = 0;
+      localStorage.removeItem('pkl_lockout');
+      localStorage.removeItem('pkl_attempts');
+      document.getElementById('numpad').style.opacity = '';
+      document.getElementById('numpad').style.pointerEvents = '';
+      warn.textContent = '';
+      errEl.classList.remove('show');
+      pinEntry = '';
+      updateDots();
+    } else {
+      warn.textContent = `Sistem dikunci selama ${remaining} detik`;
+      setTimeout(tick, 1000);
+    }
+  };
+  tick();
+}
+
+// Update dot count based on PIN length dynamically
+function rebuildDots() {
+  const pinLen = getStoredPin().length;
+  const container = document.getElementById('pin-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < pinLen; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pin-dot';
+    dot.id = `dot-${i}`;
+    container.appendChild(dot);
+  }
+}
+
+// Rebuild dots on load to match PIN length
+document.addEventListener('DOMContentLoaded', () => {
+  rebuildDots();
+});
+</script>
+</body>
+</html>

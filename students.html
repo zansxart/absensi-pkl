@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peserta PKL – Sistem Absensi</title>
+  <meta name="description" content="Manajemen peserta PKL" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg style="width:20px;height:20px;stroke:var(--accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h2>PKL TRACKER</h2>
+        <span>ABSENSI QR CODE</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <a href="index.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        Dashboard
+      </a>
+      <a href="scanner.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        Scan QR
+      </a>
+      <div class="nav-section-label">Data</div>
+      <a href="students.html" class="nav-item active">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Peserta PKL
+      </a>
+      <a href="schedule.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Jadwal
+      </a>
+      <div class="nav-section-label">Laporan</div>
+      <a href="report.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        Laporan Bulanan
+      </a>
+      <a href="evaluation.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v3.5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/></svg>
+        </span>
+        Penilaian Akhir
+      </a>
+      <div class="nav-section-label">Sistem</div>
+      <a href="settings.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Pengaturan
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">A</div>
+        <div class="user-info"><p>Admin</p><span>Administrator</span></div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Peserta PKL</h1>
+        <p id="topbar-date">Memuat...</p>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-time" id="topbar-time">00:00:00</span>
+        <button class="btn btn-primary" id="btn-add">Tambah Siswa</button>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- FILTER BAR -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Cari nama, NIS, sekolah..." />
+        </div>
+        <select class="form-control" id="filter-shift" style="width:auto;min-width:130px;font-size:12px;padding:6px 10px;">
+          <option value="">Semua Shift</option>
+          <option value="P">Shift Pagi</option>
+          <option value="S">Shift Siang</option>
+        </select>
+        <div style="margin-left:auto;font-size:13px;color:var(--text-muted);" id="student-count">0 siswa</div>
+      </div>
+
+      <!-- STUDENT CARDS -->
+      <div id="students-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+        <div class="empty-state" style="grid-column:1/-1;padding:80px 20px;">
+          <p>Belum ada peserta PKL</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODAL ADD/EDIT STUDENT -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Tambah Peserta PKL</h3>
+      <button class="btn-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Photo Upload -->
+      <div class="photo-upload">
+        <div class="photo-preview" id="photo-preview" onclick="document.getElementById('photo-input').click()">
+          <span id="photo-placeholder">Pilih Foto</span>
+          <img id="photo-img" src="" alt="" style="display:none;" />
+        </div>
+        <span>Klik untuk upload foto profil</span>
+        <input type="file" id="photo-input" accept="image/*" style="display:none;" />
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap *</label>
+          <input type="text" class="form-control" id="f-name" placeholder="Masukkan nama lengkap" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">NIS *</label>
+          <input type="text" class="form-control" id="f-nis" placeholder="Nomor Induk Siswa" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sekolah *</label>
+          <input type="text" class="form-control" id="f-school" placeholder="Nama sekolah asal" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jurusan</label>
+          <input type="text" class="form-control" id="f-major" placeholder="RPL, TKJ, dll." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">No. HP / WA</label>
+          <input type="text" class="form-control" id="f-phone" placeholder="08xxxxxxxxxx" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shift</label>
+          <select class="form-control" id="f-shift">
+            <option value="P">Pagi</option>
+            <option value="S">Siang</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal Mulai PKL</label>
+          <input type="date" class="form-control" id="f-start" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal Selesai PKL</label>
+          <input type="date" class="form-control" id="f-end" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nilai Sikap (manual, 0–100) — untuk penilaian akhir</label>
+        <input type="number" class="form-control" id="f-sikap" placeholder="80" min="0" max="100" value="80" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel">Batal</button>
+      <button class="btn btn-primary" id="btn-save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QR CODE -->
+<div class="modal-overlay" id="modal-qr">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <h3>QR Code ID Card</h3>
+      <button class="btn-close" id="modal-qr-close">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <div id="qr-card-wrap" style="display:inline-block;">
+        <div class="qr-card" id="qr-card-print">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.05em;color:#3b82f6;margin-bottom:8px;">PKL TRACKER ID CARD</div>
+          <div id="qr-canvas-wrap" style="display: flex; justify-content: center; margin: 10px 0;"></div>
+          <div class="qr-name" id="qr-card-name">-</div>
+          <div class="qr-nis" id="qr-card-nis">-</div>
+          <div class="qr-school" id="qr-card-school">-</div>
+        </div>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:12px;">QR Code ini digunakan untuk absensi siswa.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-qr-cancel">Tutup</button>
+      <button class="btn btn-primary" id="btn-print-qr">Print ID Card</button>
+      <button class="btn btn-secondary" id="btn-download-qr">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM DELETE -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <h3>Hapus Siswa</h3>
+      <button class="btn-close" id="modal-delete-close">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:24px 20px;">
+      <p style="font-size:14px;margin-bottom:8px;">Hapus <strong id="delete-name">-</strong>?</p>
+      <p style="font-size:12px;color:var(--text-muted);">Data absensi siswa ini juga akan terhapus permanen.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-delete-cancel">Batal</button>
+      <button class="btn btn-danger" id="btn-confirm-delete">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+let editId = null;
+let deleteId = null;
+let photoBase64 = '';
+let currentQrStudentId = null;
+
+function renderStudents() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const shiftFilter = document.getElementById('filter-shift').value;
+  let students = DB.getStudents().filter(s => {
+    const match = (s.name + s.nis + s.school + s.major).toLowerCase().includes(q);
+    const shiftMatch = !shiftFilter || s.shift === shiftFilter;
+    return match && shiftMatch;
+  });
+
+  document.getElementById('student-count').textContent = `${students.length} siswa`;
+
+  const grid = document.getElementById('students-grid');
+  if (students.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Tidak ada siswa ditemukan</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = students.map(s => {
+    const today = getToday();
+    const now = new Date();
+    const year = now.getFullYear(); const month = now.getMonth() + 1;
+    const stats = Attendance.getMonthStats(s.id, year, month);
+    const cell = Attendance.getCellStatus(s.id, today);
+
+    const avatarHtml = s.photo
+      ? `<img src="${s.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />`
+      : `<div style="width:48px;height:48px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;flex-shrink:0;">${getInitials(s.name)}</div>`;
+
+    const statusBadge = cell.cls.includes('hadir')
+      ? `<span class="badge badge-success">Hadir</span>`
+      : cell.cls.includes('terlambat')
+      ? `<span class="badge badge-warning">Terlambat</span>`
+      : cell.cls.includes('alpha') ? `<span class="badge badge-danger">Alpha</span>`
+      : cell.cls.includes('izin') ? `<span class="badge badge-info">Izin</span>`
+      : `<span class="badge badge-neutral">—</span>`;
+
+    return `
+      <div class="card" style="padding:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          ${avatarHtml}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${s.nis} • ${s.major}</div>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:1px;">${s.school}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+            <span class="badge badge-neutral" style="font-size:9.5px;">${s.shift === 'P' ? 'Pagi' : 'Siang'}</span>
+            ${statusBadge}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center;">
+            <div style="font-size:15px;font-weight:700;color:var(--success);">${stats.hadir}</div>
+            <div style="font-size:9px;color:var(--text-muted);">Hadir</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center;">
+            <div style="font-size:15px;font-weight:700;color:var(--warning);">${stats.terlambat}</div>
+            <div style="font-size:9px;color:var(--text-muted);">Terlambat</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center;">
+            <div style="font-size:15px;font-weight:700;color:var(--danger);">${stats.alpha}</div>
+            <div style="font-size:9px;color:var(--text-muted);">Alpha</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center;">
+            <div style="font-size:15px;font-weight:700;color:var(--accent);">${stats.pct}%</div>
+            <div style="font-size:9px;color:var(--text-muted);">Persentase</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openQR('${s.id}')">QR Code</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openEdit('${s.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="openDelete('${s.id}')">
+            <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Add/Edit modal logic...
+document.getElementById('btn-add').addEventListener('click', () => openModal(null));
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+
+function openModal(id) {
+  editId = id;
+  photoBase64 = '';
+  resetForm();
+
+  if (id) {
+    const s = DB.getStudentById(id);
+    if (!s) return;
+    document.getElementById('modal-title').textContent = 'Edit Peserta PKL';
+    document.getElementById('f-name').value = s.name;
+    document.getElementById('f-nis').value = s.nis;
+    document.getElementById('f-school').value = s.school;
+    document.getElementById('f-major').value = s.major || '';
+    document.getElementById('f-phone').value = s.phone || '';
+    document.getElementById('f-shift').value = s.shift || 'P';
+    document.getElementById('f-start').value = s.startDate || '';
+    document.getElementById('f-end').value = s.endDate || '';
+    document.getElementById('f-sikap').value = s.nilaiSikap || 80;
+    if (s.photo) {
+      photoBase64 = s.photo;
+      document.getElementById('photo-img').src = s.photo;
+      document.getElementById('photo-img').style.display = '';
+      document.getElementById('photo-placeholder').style.display = 'none';
+    }
+  } else {
+    document.getElementById('modal-title').textContent = 'Tambah Peserta PKL';
+  }
+  document.getElementById('modal-student').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-student').classList.remove('active');
+}
+
+function resetForm() {
+  ['f-name','f-nis','f-school','f-major','f-phone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-shift').value = 'P';
+  document.getElementById('f-start').value = '';
+  document.getElementById('f-end').value = '';
+  document.getElementById('f-sikap').value = 80;
+  document.getElementById('photo-img').src = '';
+  document.getElementById('photo-img').style.display = 'none';
+  document.getElementById('photo-placeholder').style.display = '';
+}
+
+document.getElementById('photo-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    photoBase64 = ev.target.result;
+    document.getElementById('photo-img').src = photoBase64;
+    document.getElementById('photo-img').style.display = '';
+    document.getElementById('photo-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  const name = document.getElementById('f-name').value.trim();
+  const nis  = document.getElementById('f-nis').value.trim();
+  const school = document.getElementById('f-school').value.trim();
+  if (!name || !nis || !school) {
+    showToast('warning', 'Lengkapi Form', 'Nama, NIS, dan Sekolah harus diisi');
+    return;
+  }
+
+  let students = DB.getStudents();
+  if (editId) {
+    students = students.map(s => s.id === editId ? {
+      ...s, name, nis, school,
+      major: document.getElementById('f-major').value,
+      phone: document.getElementById('f-phone').value,
+      shift: document.getElementById('f-shift').value,
+      startDate: document.getElementById('f-start').value,
+      endDate: document.getElementById('f-end').value,
+      nilaiSikap: parseInt(document.getElementById('f-sikap').value) || 80,
+      photo: photoBase64,
+    } : s);
+    showToast('success', 'Berhasil', 'Data siswa berhasil diupdate');
+  } else {
+    students.push({
+      id: generateId(), name, nis, school,
+      major: document.getElementById('f-major').value,
+      phone: document.getElementById('f-phone').value,
+      shift: document.getElementById('f-shift').value,
+      startDate: document.getElementById('f-start').value,
+      endDate: document.getElementById('f-end').value,
+      nilaiSikap: parseInt(document.getElementById('f-sikap').value) || 80,
+      photo: photoBase64,
+      createdAt: new Date().toISOString(),
+    });
+    showToast('success', 'Berhasil', 'Siswa ditambahkan');
+  }
+  DB.saveStudents(students);
+  closeModal();
+  renderStudents();
+});
+
+function openEdit(id) {
+  openModal(id);
+}
+
+function openDelete(id) {
+  deleteId = id;
+  const s = DB.getStudentById(id);
+  document.getElementById('delete-name').textContent = s ? s.name : '';
+  document.getElementById('modal-delete').classList.add('active');
+}
+
+document.getElementById('modal-delete-close').addEventListener('click', () => document.getElementById('modal-delete').classList.remove('active'));
+document.getElementById('modal-delete-cancel').addEventListener('click', () => document.getElementById('modal-delete').classList.remove('active'));
+
+document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+  if (!deleteId) return;
+  let students = DB.getStudents().filter(s => s.id !== deleteId);
+  let attendance = DB.getAttendance().filter(a => a.studentId !== deleteId);
+  DB.saveStudents(students);
+  DB.saveAttendance(attendance);
+  showToast('success', 'Dihapus', 'Data siswa berhasil dihapus');
+  document.getElementById('modal-delete').classList.remove('active');
+  renderStudents();
+});
+
+function openQR(id) {
+  currentQrStudentId = id;
+  const s = DB.getStudentById(id);
+  if (!s) return;
+  document.getElementById('qr-card-name').textContent = s.name;
+  document.getElementById('qr-card-nis').textContent = `NIS: ${s.nis}`;
+  document.getElementById('qr-card-school').textContent = s.school;
+
+  const wrap = document.getElementById('qr-canvas-wrap');
+  wrap.innerHTML = '';
+  new QRCode(wrap, { text: `PKL_${s.id}`, width: 140, height: 140, colorDark: '#0f172a', colorLight: '#ffffff' });
+  document.getElementById('modal-qr').classList.add('active');
+}
+
+document.getElementById('modal-qr-close').addEventListener('click', () => document.getElementById('modal-qr').classList.remove('active'));
+document.getElementById('modal-qr-cancel').addEventListener('click', () => document.getElementById('modal-qr').classList.remove('active'));
+
+document.getElementById('btn-print-qr').addEventListener('click', () => {
+  const card = document.getElementById('qr-card-print');
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>ID Card</title><style>
+      body { margin: 20px; font-family: sans-serif; display: flex; justify-content: center; }
+      .qr-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; text-align: center; width: 190px; color: #0f172a; background: white; }
+      .qr-name { font-size: 13.5px; font-weight: 700; margin-top: 8px; }
+      .qr-nis { font-size: 10.5px; color: #64748b; }
+      .qr-school { font-size: 10px; color: #94a3b8; }
+    </style></head><body>${card.outerHTML}<script>window.print();<\/script></body></html>
+  `);
+  win.document.close();
+});
+
+document.getElementById('btn-download-qr').addEventListener('click', () => {
+  const canvas = document.querySelector('#qr-canvas-wrap canvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `QR-${currentQrStudentId}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+});
+
+document.getElementById('search-input').addEventListener('input', renderStudents);
+document.getElementById('filter-shift').addEventListener('change', renderStudents);
+
+document.addEventListener('DOMContentLoaded', renderStudents);
+</script>
+</body>
+</html>

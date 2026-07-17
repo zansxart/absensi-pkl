@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal Bulanan – Sistem Absensi PKL</title>
+  <meta name="description" content="Jadwal bulanan absensi peserta PKL" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg style="width:20px;height:20px;stroke:var(--accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h2>PKL TRACKER</h2>
+        <span>ABSENSI QR CODE</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Utama</div>
+      <a href="index.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        Dashboard
+      </a>
+      <a href="scanner.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        Scan QR
+      </a>
+      <div class="nav-section-label">Data</div>
+      <a href="students.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Peserta PKL
+      </a>
+      <a href="schedule.html" class="nav-item active">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Jadwal
+      </a>
+      <div class="nav-section-label">Laporan</div>
+      <a href="report.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        Laporan Bulanan
+      </a>
+      <a href="evaluation.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v3.5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/></svg>
+        </span>
+        Penilaian Akhir
+      </a>
+      <div class="nav-section-label">Sistem</div>
+      <a href="settings.html" class="nav-item">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Pengaturan
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">A</div>
+        <div class="user-info"><p>Admin</p><span>Administrator</span></div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Jadwal Bulanan</h1>
+        <p id="topbar-date">Memuat...</p>
+      </div>
+      <div class="topbar-right" style="gap:8px;">
+        <span class="topbar-time" id="topbar-time">00:00:00</span>
+        <button class="btn btn-secondary btn-sm" id="btn-prev-month">Prev</button>
+        <span id="month-label" style="font-weight:700;font-size:13.5px;min-width:110px;text-align:center;color:var(--text-primary);">—</span>
+        <button class="btn btn-secondary btn-sm" id="btn-next-month">Next</button>
+        <button class="btn btn-primary btn-sm" id="btn-print-schedule">Print</button>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- LEGEND (Flat Badges) -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;font-size:12px;">
+        <span style="color:var(--text-muted);font-weight:600;margin-right:4px;">KETERANGAN:</span>
+        <span class="badge badge-success">P — Shift Pagi</span>
+        <span class="badge badge-success" style="background:rgba(59,130,246,0.15);color:var(--accent);">S — Shift Siang</span>
+        <span class="badge badge-warning">T — Terlambat</span>
+        <span class="badge badge-danger">A — Alpha</span>
+        <span class="badge badge-info">I — Izin</span>
+        <span class="badge badge-neutral">L — Libur</span>
+      </div>
+
+      <!-- SCHEDULE GRID -->
+      <div class="card">
+        <div class="card-header">
+          <h3 id="schedule-title">JADWAL KERJA PKL</h3>
+          <div style="display:flex;gap:8px;">
+            <select class="form-control" id="filter-student" style="width:auto;min-width:150px;font-size:12px;padding:6px 10px;">
+              <option value="">Semua Siswa</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" style="padding:16px;">
+          <div class="schedule-container">
+            <div id="schedule-grid">
+              <div class="empty-state">
+                <p>Memuat jadwal...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAIL ABSENSI HARI -->
+      <div id="detail-panel" style="display:none;margin-top:16px;" class="animate-in">
+        <div class="card">
+          <div class="card-header" style="padding:12px 16px;">
+            <h3 id="detail-title" style="font-size:13.5px;">Detail Absensi</h3>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('detail-panel').style.display='none'">Tutup</button>
+          </div>
+          <div class="card-body" id="detail-body" style="padding:16px;"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+let currentYear, currentMonth;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  populateFilter();
+  renderSchedule();
+});
+
+document.getElementById('btn-prev-month').addEventListener('click', () => {
+  currentMonth--;
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  renderSchedule();
+});
+document.getElementById('btn-next-month').addEventListener('click', () => {
+  currentMonth++;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  renderSchedule();
+});
+document.getElementById('filter-student').addEventListener('change', renderSchedule);
+
+function populateFilter() {
+  const sel = document.getElementById('filter-student');
+  DB.getStudents().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+}
+
+function renderSchedule() {
+  const label = document.getElementById('month-label');
+  label.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
+  document.getElementById('schedule-title').textContent = `JADWAL PKL — ${getMonthName(currentMonth).toUpperCase()} ${currentYear}`;
+
+  const filterStudent = document.getElementById('filter-student').value;
+  let students = DB.getStudents();
+  if (filterStudent) students = students.filter(s => s.id === filterStudent);
+
+  const days = getDaysInMonth(currentYear, currentMonth);
+  const grid = document.getElementById('schedule-grid');
+
+  if (students.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><p>Belum ada data siswa</p></div>`;
+    return;
+  }
+
+  let headerDate = '<tr><th style="text-align:left;padding-left:12px;min-width:140px;">Siswa</th>';
+  let headerDay = '<tr><th></th>';
+
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    const isWknd = dow === 0 || dow === 6;
+    const isToday = dateStr === getToday();
+    headerDay += `<th class="${isWknd ? 'weekend' : 'day-name'}" style="${isToday ? 'border-color:var(--accent);color:var(--accent);' : ''}">${['M','S','S','R','K','J','S'][dow]}</th>`;
+    headerDate += `<th style="${isWknd ? 'color:var(--danger);' : ''}${isToday ? 'color:var(--accent);' : ''}">${d}</th>`;
+  }
+  headerDate += '</tr>';
+  headerDay += '</tr>';
+
+  let rows = '';
+  students.forEach(s => {
+    rows += `<tr><td colspan="${days + 1}" class="student-label" style="text-align:left;padding-left:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${s.photo ? `<img src="${s.photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />` : `<div style="width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;">${getInitials(s.name)}</div>`}
+        <span>${s.name.toUpperCase()}</span>
+      </div>
+    </td></tr>`;
+
+    rows += `<tr>`;
+    rows += `<td style="font-size:11px;color:var(--text-muted);text-align:left;padding-left:12px;">Shift: ${s.shift === 'P' ? 'Pagi' : 'Siang'}</td>`;
+    for (let d = 1; d <= days; d++) {
+      const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cell = Attendance.getCellStatus(s.id, dateStr);
+      const isToday = dateStr === getToday();
+      const style = isToday ? 'border: 2px solid var(--accent);' : '';
+      rows += `<td class="${cell.cls}" style="${style}cursor:pointer;" title="${cell.label}" onclick="showDetail('${s.id}','${dateStr}')">
+        ${cell.code}
+      </td>`;
+    }
+    rows += '</tr>';
+    rows += `<tr style="height:6px;"><td colspan="${days+1}" style="background:transparent;border:none;"></td></tr>`;
+  });
+
+  grid.innerHTML = `
+    <table class="schedule-table">
+      <thead>
+        ${headerDay}
+        ${headerDate}
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+}
+
+function showDetail(studentId, dateStr) {
+  const s = DB.getStudentById(studentId);
+  if (!s) return;
+  const records = DB.getAttendance().filter(a => a.studentId === studentId && a.date === dateStr);
+  const panel = document.getElementById('detail-panel');
+  const body = document.getElementById('detail-body');
+
+  document.getElementById('detail-title').textContent = `${s.name} — ${formatDate(dateStr)}`;
+
+  if (records.length === 0) {
+    const cell = Attendance.getCellStatus(studentId, dateStr);
+    body.innerHTML = `
+      <div style="text-align:center;padding:12px;">
+        <p style="font-size:13px;font-weight:600;color:var(--text-secondary);">${cell.label || 'Tidak ada data'}</p>
+        ${!cell.cls.includes('libur') ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="markIzinDate('${studentId}','${dateStr}')">Tandai Izin</button>` : ''}
+      </div>
+    `;
+  } else {
+    body.innerHTML = records.map(r => {
+      const cls = { success: 'badge-success', warning: 'badge-warning', info: 'badge-info', danger: 'badge-danger' };
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-card);border-radius:6px;margin-bottom:6px;border:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:13px;text-transform:capitalize;">${r.type === 'masuk' ? 'Absen Masuk' : r.type === 'pulang' ? 'Absen Pulang' : 'Izin'}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${r.keterangan || ''}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);">${r.time}</div>
+            <span class="badge ${cls[r.status] || 'badge-neutral'}">${r.statusLabel}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    body.innerHTML += `<button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="markIzinDate('${studentId}','${dateStr}')">Ubah ke Izin</button>`;
+  }
+
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function markIzinDate(studentId, dateStr) {
+  const ket = prompt('Keterangan izin:');
+  if (ket === null) return;
+  Attendance.markIzin(studentId, dateStr, ket);
+  showToast('success', 'Izin Tersimpan', 'Izin siswa berhasil dimasukkan');
+  renderSchedule();
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+document.getElementById('btn-print-schedule').addEventListener('click', () => { window.print(); });
+</script>
+</body>
+</html>
