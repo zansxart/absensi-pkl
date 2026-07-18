@@ -101,15 +101,16 @@
 
     <div class="page-content animate-in">
 
-      <!-- LEGEND (Flat Badges) -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;font-size:12px;">
-        <span style="color:var(--text-muted);font-weight:600;margin-right:4px;">KETERANGAN:</span>
-        <span class="badge badge-success">P — Shift Pagi</span>
-        <span class="badge badge-success" style="background:rgba(59,130,246,0.15);color:var(--accent);">S — Shift Siang</span>
-        <span class="badge badge-warning">T — Terlambat</span>
-        <span class="badge badge-danger">A — Alpha</span>
-        <span class="badge badge-info">I — Izin</span>
-        <span class="badge badge-neutral">L — Libur</span>
+      <!-- LEGEND -->
+      <div class="sched-legend" style="margin-bottom:20px;">
+        <span class="sched-legend-title">Keterangan</span>
+        <span><i class="sw cell-hadir cell-shift-p">P</i> Hadir · Shift Pagi</span>
+        <span><i class="sw cell-hadir cell-shift-s">S</i> Hadir · Shift Siang</span>
+        <span><i class="sw cell-terlambat">T</i> Terlambat</span>
+        <span><i class="sw cell-alpha">A</i> Alpha</span>
+        <span><i class="sw cell-izin">I</i> Izin</span>
+        <span><i class="sw cell-libur">L</i> Libur</span>
+        <span><i class="sw cell-none"></i> Belum berjalan</span>
       </div>
 
       <!-- SCHEDULE GRID -->
@@ -184,6 +185,8 @@ function populateFilter() {
   });
 }
 
+const DAY_NAMES = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
 function renderSchedule() {
   const label = document.getElementById('month-label');
   label.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
@@ -195,59 +198,56 @@ function renderSchedule() {
 
   const days = getDaysInMonth(currentYear, currentMonth);
   const grid = document.getElementById('schedule-grid');
+  const today = getToday();
 
   if (students.length === 0) {
     grid.innerHTML = `<div class="empty-state"><p>Belum ada data siswa</p></div>`;
     return;
   }
 
-  let headerDate = '<tr><th style="text-align:left;padding-left:12px;min-width:140px;">Siswa</th>';
-  let headerDay = '<tr><th></th>';
-
+  let header = '<tr><th class="sched-name-col">Siswa</th>';
   for (let d = 1; d <= days; d++) {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dow = new Date(dateStr + 'T00:00:00').getDay();
     const isWknd = dow === 0 || dow === 6;
-    const isToday = dateStr === getToday();
-    headerDay += `<th class="${isWknd ? 'weekend' : 'day-name'}" style="${isToday ? 'border-color:var(--accent);color:var(--accent);' : ''}">${['M','S','S','R','K','J','S'][dow]}</th>`;
-    headerDate += `<th style="${isWknd ? 'color:var(--danger);' : ''}${isToday ? 'color:var(--accent);' : ''}">${d}</th>`;
+    const isToday = dateStr === today;
+    header += `<th class="sched-day${isWknd ? ' weekend' : ''}${isToday ? ' today' : ''}">
+      <span class="sd-dow">${DAY_NAMES[dow]}</span>
+      <span class="sd-num">${d}</span>
+    </th>`;
   }
-  headerDate += '</tr>';
-  headerDay += '</tr>';
+  header += '</tr>';
 
-  let rows = '';
-  students.forEach(s => {
-    rows += `<tr><td colspan="${days + 1}" class="student-label" style="text-align:left;padding-left:12px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        ${s.photo ? `<img src="${s.photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />` : `<div style="width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;">${getInitials(s.name)}</div>`}
-        <span>${s.name.toUpperCase()}</span>
+  const rows = students.map(s => {
+    const avatar = s.photo
+      ? `<img src="${s.photo}" class="sched-avatar" />`
+      : `<div class="sched-avatar sched-avatar-fallback">${getInitials(s.name)}</div>`;
+
+    let cells = `<td class="sched-name-col">
+      <div class="sched-student">
+        ${avatar}
+        <div class="sched-student-info">
+          <div class="sched-student-name" title="${s.name}">${s.name}</div>
+          <div class="sched-student-shift">Shift ${s.shift === 'P' ? 'Pagi' : 'Siang'}</div>
+        </div>
       </div>
-    </td></tr>`;
+    </td>`;
 
-    rows += `<tr>`;
-    rows += `<td style="font-size:11px;color:var(--text-muted);text-align:left;padding-left:12px;">Shift: ${s.shift === 'P' ? 'Pagi' : 'Siang'}</td>`;
     for (let d = 1; d <= days; d++) {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const cell = Attendance.getCellStatus(s.id, dateStr);
-      const isToday = dateStr === getToday();
-      const style = isToday ? 'border: 2px solid var(--accent);' : '';
-      rows += `<td class="${cell.cls}" style="${style}cursor:pointer;" title="${cell.label}" onclick="showDetail('${s.id}','${dateStr}')">
-        ${cell.code}
-      </td>`;
+      const isToday = dateStr === today;
+      const cls = cell.cls || 'cell-none';
+      const tooltip = `${d} ${getMonthName(currentMonth)} — ${cell.label || 'Belum berjalan'}`;
+      cells += `<td class="sched-cell-td"><button type="button" class="sched-cell ${cls}${isToday ? ' today' : ''}" title="${tooltip}" onclick="showDetail('${s.id}','${dateStr}')">${cell.code}</button></td>`;
     }
-    rows += '</tr>';
-    rows += `<tr style="height:6px;"><td colspan="${days+1}" style="background:transparent;border:none;"></td></tr>`;
-  });
+    return `<tr>${cells}</tr>`;
+  }).join('');
 
   grid.innerHTML = `
     <table class="schedule-table">
-      <thead>
-        ${headerDay}
-        ${headerDate}
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
+      <thead>${header}</thead>
+      <tbody>${rows}</tbody>
     </table>
   `;
 }

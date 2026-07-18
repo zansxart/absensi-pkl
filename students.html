@@ -491,11 +491,28 @@ document.getElementById('btn-print-qr').addEventListener('click', () => {
 });
 
 document.getElementById('btn-download-qr').addEventListener('click', () => {
-  const canvas = document.querySelector('#qr-canvas-wrap canvas');
-  if (!canvas) return;
+  const s = DB.getStudentById(currentQrStudentId);
+  if (!s) return;
+
+  // Render ulang QR ukuran besar, lalu beri quiet zone (bingkai putih).
+  // Tanpa quiet zone, QR gagal discan saat ditampilkan di background gelap (mis. layar HP dark mode).
+  const tmp = document.createElement('div');
+  new QRCode(tmp, { text: `PKL_${s.id}`, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff' });
+  const qrCanvas = tmp.querySelector('canvas');
+  if (!qrCanvas) return;
+
+  const margin = 40;
+  const out = document.createElement('canvas');
+  out.width = qrCanvas.width + margin * 2;
+  out.height = qrCanvas.height + margin * 2;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(qrCanvas, margin, margin);
+
   const link = document.createElement('a');
-  link.download = `QR-${currentQrStudentId}.png`;
-  link.href = canvas.toDataURL();
+  link.download = `QR-${(s.nis || currentQrStudentId)}.png`;
+  link.href = out.toDataURL('image/png');
   link.click();
 });
 

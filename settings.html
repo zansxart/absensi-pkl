@@ -122,12 +122,20 @@
             <div class="card-body">
               <div class="form-grid">
                 <div class="form-group">
-                  <label class="form-label">Jam Masuk</label>
+                  <label class="form-label">Jam Masuk (Shift Pagi)</label>
                   <input type="time" class="form-control" id="s-jam-masuk" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Jam Pulang</label>
+                  <label class="form-label">Jam Pulang (Shift Pagi)</label>
                   <input type="time" class="form-control" id="s-jam-pulang" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Jam Masuk (Shift Siang)</label>
+                  <input type="time" class="form-control" id="s-jam-masuk-siang" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Jam Pulang (Shift Siang)</label>
+                  <input type="time" class="form-control" id="s-jam-pulang-siang" />
                 </div>
               </div>
               <div class="form-group">
@@ -213,6 +221,8 @@ function loadSettings() {
   document.getElementById('s-tahun-ajaran').value = s.tahun_ajaran || '';
   document.getElementById('s-jam-masuk').value = s.jam_masuk || '08:00';
   document.getElementById('s-jam-pulang').value = s.jam_pulang || '16:00';
+  document.getElementById('s-jam-masuk-siang').value = s.jam_masuk_siang || '13:00';
+  document.getElementById('s-jam-pulang-siang').value = s.jam_pulang_siang || '21:00';
   document.getElementById('s-toleransi').value = s.toleransi_menit || 15;
 }
 
@@ -245,6 +255,8 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     tahun_ajaran: document.getElementById('s-tahun-ajaran').value,
     jam_masuk: document.getElementById('s-jam-masuk').value,
     jam_pulang: document.getElementById('s-jam-pulang').value,
+    jam_masuk_siang: document.getElementById('s-jam-masuk-siang').value,
+    jam_pulang_siang: document.getElementById('s-jam-pulang-siang').value,
     toleransi_menit: parseInt(document.getElementById('s-toleransi').value) || 15,
   };
   if (pinNew) settings.pin = pinNew;

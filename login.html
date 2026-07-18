@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (locked) return;
     if (e.key >= '0' && e.key <= '9') addDigit(e.key);
     else if (e.key === 'Backspace') deleteDigit();
-    else if (e.key === 'Enter') checkPin();
+    else if (e.key === 'Enter' && pinEntry.length > 0) checkPin();
   });
 });
 
@@ -297,6 +297,7 @@ function checkPin() {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() }));
     attempts = 0;
     localStorage.removeItem('pkl_lockout');
+    localStorage.removeItem('pkl_attempts');
 
     // Animasi sukses
     document.querySelectorAll('.pin-dot').forEach(d => {

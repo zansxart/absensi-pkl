@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scan QR â€“ Sistem Absensi PKL</title>
+  <title>Scan QR – Sistem Absensi PKL</title>
   <meta name="description" content="Scan QR Code ID Card siswa PKL untuk absensi masuk dan pulang" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="node_modules/html5-qrcode/html5-qrcode.min.js"></script>
@@ -15,37 +15,63 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">ðŸŽ“</div>
+      <div class="logo-icon">
+        <svg style="width:20px;height:20px;stroke:var(--accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+        </svg>
+      </div>
       <div class="logo-text">
-        <h2>PKL Tracker</h2>
-        <span>Sistem Absensi QR</span>
+        <h2>PKL TRACKER</h2>
+        <span>ABSENSI QR CODE</span>
       </div>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Utama</div>
       <a href="index.html" class="nav-item">
-        <span class="nav-icon">ðŸ </span> Dashboard
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        Dashboard
       </a>
       <a href="scanner.html" class="nav-item active">
-        <span class="nav-icon">ðŸ“·</span> Scan QR
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
+        Scan QR
       </a>
       <div class="nav-section-label">Data</div>
       <a href="students.html" class="nav-item">
-        <span class="nav-icon">ðŸ‘¥</span> Peserta PKL
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Peserta PKL
       </a>
       <a href="schedule.html" class="nav-item">
-        <span class="nav-icon">ðŸ“…</span> Jadwal
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Jadwal
       </a>
       <div class="nav-section-label">Laporan</div>
       <a href="report.html" class="nav-item">
-        <span class="nav-icon">ðŸ“Š</span> Laporan Bulanan
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        Laporan Bulanan
       </a>
       <a href="evaluation.html" class="nav-item">
-        <span class="nav-icon">ðŸ†</span> Penilaian Akhir
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v3.5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/></svg>
+        </span>
+        Penilaian Akhir
       </a>
       <div class="nav-section-label">Sistem</div>
       <a href="settings.html" class="nav-item">
-        <span class="nav-icon">âš™ï¸</span> Pengaturan
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Pengaturan
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -53,6 +79,10 @@
         <div class="avatar">A</div>
         <div class="user-info"><p>Admin</p><span>Administrator</span></div>
       </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
     </div>
   </aside>
 
@@ -60,7 +90,7 @@
   <main class="main-content">
     <div class="topbar">
       <div class="topbar-left">
-        <h1>ðŸ“· Scan QR Absensi</h1>
+        <h1>📷 Scan QR Absensi</h1>
         <p id="topbar-date">Memuat...</p>
       </div>
       <div class="topbar-right">
@@ -76,7 +106,7 @@
         background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2);
         border-radius:12px; margin-bottom:20px; font-size:14px;">
         <span id="scan-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--warning);animation:pulse 1.5s infinite;flex-shrink:0;"></span>
-        <span id="scan-status-text">Kamera belum aktif â€” klik <strong>Mulai Kamera</strong></span>
+        <span id="scan-status-text">Kamera belum aktif — klik <strong>Mulai Kamera</strong></span>
       </div>
 
       <div class="scanner-container">
@@ -89,9 +119,9 @@
               <p style="font-size:12px;color:var(--text-muted);">Arahkan QR Code ID Card ke kamera</p>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <button class="btn btn-primary btn-sm" id="btn-start">â–¶ Mulai Kamera</button>
-              <button class="btn btn-secondary btn-sm" id="btn-stop" style="display:none;">â ¹ Stop</button>
-              <button class="btn btn-secondary btn-sm" id="btn-flip" style="display:none;" title="Ganti kamera">ðŸ”„</button>
+              <button class="btn btn-primary btn-sm" id="btn-start">▶ Mulai Kamera</button>
+              <button class="btn btn-secondary btn-sm" id="btn-stop" style="display:none;">⏹ Stop</button>
+              <button class="btn btn-secondary btn-sm" id="btn-flip" style="display:none;" title="Ganti kamera">🔄</button>
               <input type="file" id="qr-file-input" accept="image/*" style="display:none;" />
               <button class="btn btn-secondary btn-sm" id="btn-upload-file">Upload Foto QR</button>
             </div>
@@ -106,7 +136,7 @@
               position:absolute;inset:0;
               display:flex;flex-direction:column;align-items:center;justify-content:center;
               background:rgba(0,0,0,0.85);color:var(--text-muted);gap:12px;">
-              <div style="font-size:64px;opacity:0.4;">ðŸ“·</div>
+              <div style="font-size:64px;opacity:0.4;">📷</div>
               <p style="font-size:14px;">Klik <strong style="color:var(--accent)">Mulai Kamera</strong> untuk mengaktifkan scan</p>
               <p style="font-size:12px;opacity:0.6;">Pastikan browser mengizinkan akses kamera</p>
             </div>
@@ -129,11 +159,11 @@
           <!-- Result Card -->
           <div class="result-card" id="result-card">
             <div id="result-default">
-              <div style="font-size:56px;margin-bottom:12px;opacity:0.3;">ðŸŽ«</div>
+              <div style="font-size:56px;margin-bottom:12px;opacity:0.3;">🎫</div>
               <p style="font-size:14px;color:var(--text-muted);">Scan QR Code untuk melihat hasil absensi</p>
             </div>
             <div id="result-data" style="display:none;">
-              <div class="success-anim" id="result-anim">âœ…</div>
+              <div class="success-anim" id="result-anim">✅</div>
               <div id="result-avatar-wrap" style="margin:12px auto 0;width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--border);"></div>
               <div class="result-name" id="result-name">-</div>
               <div class="result-school" id="result-school">-</div>
@@ -142,7 +172,7 @@
               <div id="result-detail" style="font-size:12px;color:var(--text-muted);"></div>
             </div>
             <div id="result-error" style="display:none;">
-              <div style="font-size:48px;margin-bottom:12px;">âš ï¸</div>
+              <div style="font-size:48px;margin-bottom:12px;">⚠</div>
               <div id="result-error-msg" style="font-size:14px;color:var(--danger);font-weight:600;"></div>
             </div>
           </div>
@@ -150,13 +180,13 @@
           <!-- Log Hari Ini -->
           <div class="card" style="margin-top:16px;">
             <div class="card-header">
-              <h3 style="font-size:14px;">ðŸ“‹ Log Hari Ini</h3>
+              <h3 style="font-size:14px;">📋 Log Hari Ini</h3>
               <span id="log-count" class="badge badge-neutral">0</span>
             </div>
             <div style="max-height:260px;overflow-y:auto;">
               <div class="scan-log" id="scan-log">
                 <div class="empty-state" style="padding:30px 20px;">
-                  <div class="empty-icon" style="font-size:32px;">ðŸ“­</div>
+                  <div class="empty-icon" style="font-size:32px;">📭</div>
                   <p>Belum ada scan</p>
                 </div>
               </div>
@@ -166,7 +196,7 @@
           <!-- Manual Izin -->
           <div class="card" style="margin-top:12px;">
             <div class="card-header">
-              <h3 style="font-size:14px;">ðŸ“ Input Izin Manual</h3>
+              <h3 style="font-size:14px;"> Input Izin Manual</h3>
             </div>
             <div class="card-body">
               <div class="form-group" style="margin-bottom:10px;">
@@ -179,7 +209,7 @@
                 <label class="form-label">Keterangan</label>
                 <input type="text" class="form-control" id="izin-keterangan" placeholder="Misal: Sakit, Keperluan keluarga..." style="font-size:13px;" />
               </div>
-              <button class="btn btn-primary btn-sm" id="btn-izin" style="width:100%;">ðŸ“ Simpan Izin</button>
+              <button class="btn btn-primary btn-sm" id="btn-izin" style="width:100%;"> Simpan Izin</button>
             </div>
           </div>
 
@@ -291,10 +321,8 @@ async function startCamera(preferredCameraIndex = null) {
     );
 
     const activeCamera = cameras[currentCameraIndex]?.label || `kamera ${currentCameraIndex + 1}`;
-    setCameraActiveUi(`Kamera aktif (${activeCamera}) - arahkan QR Code ke kotak scan`);
+    setCameraActiveUi(`Kamera aktif (${activeCamera}) — arahkan QR Code ke kotak scan`);
     startNativeDetectorLoop();
-    setTimeout(() => setStatusBar('active', `Kamera aktif (${activeCamera}) - arahkan QR Code ke kotak scan`), 0);
-    setStatusBar('active', '🟢 Kamera aktif — arahkan QR Code');
   } catch (err) {
     console.error(err);
     if (html5QrCode) {
@@ -309,7 +337,6 @@ async function startCamera(preferredCameraIndex = null) {
       err = nativeErr || err;
     }
     const msg = formatError(err);
-    setStatusBar('error', '❌ Gagal mengakses kamera: ' + msg);
     setStatusBar('error', 'Gagal mengakses kamera: ' + msg);
     showToast('error', 'Kamera Error', msg);
   }
@@ -390,7 +417,7 @@ function onScanFailure() {
     lastFailureStatusAt = now;
     setStatusBar('active', `Kamera aktif - membaca frame (${scanFailureCount}), QR belum terbaca`);
   }
-  // Silent fail â€” tidak perlu tampilkan error untuk setiap frame
+  // Silent fail — tidak perlu tampilkan error untuk setiap frame
 }
 
 function extractStudentIdFromQr(decodedText) {
@@ -589,15 +616,15 @@ function showScanResult(result) {
   anim.style.animation = 'none';
   anim.offsetHeight; // reflow
   anim.style.animation = '';
-  anim.textContent = type === 'masuk' ? 'âœ…' : 'ðŸ‘‹';
+  anim.textContent = type === 'masuk' ? '✅' : '👋';
 
   document.getElementById('result-name').textContent = student.name;
-  document.getElementById('result-school').textContent = `${student.school} â€¢ ${student.major}`;
+  document.getElementById('result-school').textContent = `${student.school} • ${student.major}`;
   document.getElementById('result-time').textContent = record.time;
 
   const badge = document.getElementById('result-status-badge');
   const colors = { success: 'var(--success)', warning: 'var(--warning)', info: 'var(--info)' };
-  badge.textContent = `${type === 'masuk' ? 'ðŸ• Masuk' : 'ðŸƒ Pulang'} â€” ${statusLabel}`;
+  badge.textContent = `${type === 'masuk' ? '🕐 Masuk' : '🏃 Pulang'} — ${statusLabel}`;
   badge.style.background = status === 'success' ? 'var(--success-bg)' : status === 'warning' ? 'var(--warning-bg)' : 'var(--info-bg)';
   badge.style.color = colors[status] || 'var(--text-primary)';
 
@@ -605,7 +632,7 @@ function showScanResult(result) {
     type === 'masuk' ? `Jam masuk: ${record.time}` : `Jam pulang: ${record.time}`;
 
   const toastType = status === 'warning' ? 'warning' : 'success';
-  showToast(toastType, `${student.name} â€” ${type === 'masuk' ? 'Masuk' : 'Pulang'}`, statusLabel);
+  showToast(toastType, `${student.name} — ${type === 'masuk' ? 'Masuk' : 'Pulang'}`, statusLabel);
 }
 
 // =================== LOG ===================
@@ -619,7 +646,7 @@ function renderScanLog() {
   count.textContent = all.length;
 
   if (all.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon" style="font-size:32px;">ðŸ“­</div><p>Belum ada scan</p></div>`;
+    container.innerHTML = `<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon" style="font-size:32px;">📭</div><p>Belum ada scan</p></div>`;
     return;
   }
 
@@ -629,14 +656,14 @@ function renderScanLog() {
     const avatarHtml = s.photo
       ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
       : `<div class="log-avatar">${getInitials(s.name)}</div>`;
-    const typeLabel = a.type === 'masuk' ? 'ðŸ• Masuk' : 'ðŸƒ Pulang';
+    const typeLabel = a.type === 'masuk' ? '🕐 Masuk' : '🏃 Pulang';
     const cls = a.status === 'warning' ? 'badge-warning' : a.type === 'pulang' ? 'badge-info' : 'badge-success';
     return `
       <div class="log-item">
         ${avatarHtml}
         <div class="log-info">
           <div class="log-name">${s.name}</div>
-          <div class="log-time">${typeLabel} â€” ${a.time}</div>
+          <div class="log-time">${typeLabel} — ${a.time}</div>
         </div>
         <span class="badge ${cls} log-status">${a.statusLabel}</span>
       </div>
@@ -660,7 +687,7 @@ document.getElementById('btn-izin').addEventListener('click', () => {
   const ket = document.getElementById('izin-keterangan').value;
   if (!studentId) { showToast('warning', 'Pilih Siswa', 'Pilih siswa terlebih dahulu'); return; }
   Attendance.markIzin(studentId, getToday(), ket);
-  showToast('success', 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} â€” Izin hari ini`);
+  showToast('success', 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} — Izin hari ini`);
   document.getElementById('izin-keterangan').value = '';
   renderScanLog();
 });

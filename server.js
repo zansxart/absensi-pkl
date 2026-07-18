@@ -51,10 +51,25 @@ const server = http.createServer((req, res) => {
   }
 
   // Default ke login.html
-  let filePath = req.url === '/' ? './login.html' : '.' + req.url;
-  
+  let urlPath = req.url === '/' ? '/login.html' : req.url;
+
   // Hilangkan query string jika ada
-  filePath = filePath.split('?')[0];
+  try {
+    urlPath = decodeURIComponent(urlPath.split('?')[0]);
+  } catch (e) {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
+
+  // Kunci request ke dalam folder projek & blokir dotfile (.env, .git)
+  const filePath = path.join(__dirname, path.normalize(urlPath));
+  const relative = path.relative(__dirname, filePath);
+  if (relative.startsWith('..') || relative.split(path.sep).some(p => p.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/html' });
+    res.end('<h1>403 Forbidden</h1>', 'utf-8');
+    return;
+  }
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';

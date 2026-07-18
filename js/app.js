@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
   institution: 'SMK PKL System',
   jam_masuk: '08:00',
   jam_pulang: '16:00',
+  jam_masuk_siang: '13:00',
+  jam_pulang_siang: '21:00',
   toleransi_menit: 15,
   tahun_ajaran: '2025/2026',
   pin: '1234',
@@ -53,7 +55,9 @@ const DB = {
 
 // ===================== UTILITIES =====================
 function getToday() {
-  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // Tanggal lokal (bukan UTC) — toISOString menggeser tanggal sebelum jam 07:00 WIB
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function formatTime(isoString) {
@@ -122,24 +126,29 @@ const Attendance = {
    */
   record(studentId) {
     const settings = DB.getSettings();
-    const today = getToday();
-    const now = new Date();
-    const nowTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    const nowMins = timeToMinutes(nowTime.replace('.', ':'));
-    const jamMasukMins = timeToMinutes(settings.jam_masuk);
-    const jamPulangMins = timeToMinutes(settings.jam_pulang);
-    const toleransiMins = parseInt(settings.toleransi_menit);
-
     const student = DB.getStudentById(studentId);
     if (!student) return { error: 'Siswa tidak ditemukan' };
+
+    const today = getToday();
+    const now = new Date();
+    const nowTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const nowMins = timeToMinutes(nowTime);
+
+    // Jam kerja mengikuti shift siswa (P = pagi, S = siang)
+    const isSiang = student.shift === 'S';
+    const jamMasuk = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
+    const jamMasukMins = timeToMinutes(jamMasuk);
+    const toleransiMins = parseInt(settings.toleransi_menit) || 0;
 
     let attendance = DB.getAttendance();
     const todayRecords = attendance.filter(a => a.studentId === studentId && a.date === today);
     const hasMasuk = todayRecords.find(r => r.type === 'masuk');
     const hasPulang = todayRecords.find(r => r.type === 'pulang');
+    const hasIzin = todayRecords.find(r => r.type === 'izin');
 
-    // Cek batas waktu: scan masuk (antara jam 06:00 - jam_pulang-1)
-    // Scan pulang: setelah jam_masuk+2jam
+    if (hasIzin) return { error: `${student.name} sudah tercatat Izin hari ini` };
+
+    // Scan kedua dianggap pulang minimal 2 jam setelah jam masuk shift
     const midDay = jamMasukMins + 120;
 
     let type, statusLabel, statusClass;
@@ -172,7 +181,7 @@ const Attendance = {
       date: today,
       type,
       timestamp: now.toISOString(),
-      time: nowTime.replace('.', ':'),
+      time: nowTime,
       status: statusClass,
       statusLabel,
     };
@@ -189,14 +198,28 @@ const Attendance = {
   getMonthStats(studentId, year, month) {
     const days = getDaysInMonth(year, month);
     const allAttendance = DB.getAttendance();
-    let hadir = 0, terlambat = 0, alpha = 0, izin = 0;
+    const student = DB.getStudentById(studentId);
+    const today = getToday();
+    let hadir = 0, terlambat = 0, alpha = 0, izin = 0, workdays = 0;
 
     for (let d = 1; d <= days; d++) {
       const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       if (isWeekend(dateStr)) continue;
+      // Di luar periode PKL siswa → tidak dihitung
+      if (student?.startDate && dateStr < student.startDate) continue;
+      if (student?.endDate && dateStr > student.endDate) continue;
+
       const records = allAttendance.filter(a => a.studentId === studentId && a.date === dateStr);
       const masuk = records.find(r => r.type === 'masuk');
-      if (!masuk) {
+      const izinRec = records.find(r => r.type === 'izin');
+
+      // Hari yang belum terjadi tidak dihitung sebagai hari kerja/alpha
+      if (dateStr > today && !masuk && !izinRec) continue;
+
+      workdays++;
+      if (izinRec) {
+        izin++;
+      } else if (!masuk) {
         alpha++;
       } else if (masuk.status === 'warning') {
         terlambat++;
@@ -205,13 +228,7 @@ const Attendance = {
         hadir++;
       }
     }
-    // Count izin (manual)
-    const izinRecords = allAttendance.filter(a => a.studentId === studentId && a.type === 'izin' && a.date.startsWith(`${year}-${String(month).padStart(2,'0')}`));
-    izin = izinRecords.length;
-    // Adjust alpha by removing izin days from alpha
-    alpha = Math.max(0, alpha - izin);
 
-    const workdays = countWorkdays(year, month);
     const pct = workdays > 0 ? Math.round((hadir / workdays) * 100) : 0;
     return { hadir, terlambat, alpha, izin, workdays, pct };
   },
@@ -221,8 +238,8 @@ const Attendance = {
    */
   markIzin(studentId, date, keterangan = '') {
     let attendance = DB.getAttendance();
-    // Hapus record sebelumnya jika ada
-    attendance = attendance.filter(a => !(a.studentId === studentId && a.date === date && a.type === 'izin'));
+    // Izin menggantikan semua record hari itu (masuk/pulang/izin lama)
+    attendance = attendance.filter(a => !(a.studentId === studentId && a.date === date));
     attendance.push({
       id: generateId(),
       studentId, date,
@@ -240,16 +257,19 @@ const Attendance = {
    */
   getCellStatus(studentId, dateStr) {
     if (isWeekend(dateStr)) return { code: 'L', label: 'Libur', cls: 'cell-libur' };
+    const student = DB.getStudentById(studentId);
+    // Di luar periode PKL siswa → kosong, bukan Alpha
+    if (student?.startDate && dateStr < student.startDate) return { code: '', label: '', cls: '' };
+    if (student?.endDate && dateStr > student.endDate) return { code: '', label: '', cls: '' };
     const records = DB.getAttendance().filter(a => a.studentId === studentId && a.date === dateStr);
     const masuk = records.find(r => r.type === 'masuk');
     const izin = records.find(r => r.type === 'izin');
     if (izin) return { code: 'I', label: 'Izin', cls: 'cell-izin' };
     if (!masuk) {
       const today = getToday();
-      if (dateStr > today) return { code: '', label: '', cls: '' };
+      if (dateStr >= today) return { code: '', label: '', cls: '' };
       return { code: 'A', label: 'Alpha', cls: 'cell-alpha' };
     }
-    const student = DB.getStudentById(studentId);
     const shift = student?.shift || 'P';
     if (masuk.status === 'warning') return { code: 'T', label: 'Terlambat', cls: 'cell-terlambat', shift };
     return { code: shift, label: shift === 'P' ? 'Pagi' : 'Siang', cls: shift === 'P' ? 'cell-hadir cell-shift-p' : 'cell-hadir cell-shift-s' };
@@ -288,15 +308,6 @@ const Evaluation = {
 };
 
 // ===================== HELPERS =====================
-function countWorkdays(year, month) {
-  const days = getDaysInMonth(year, month);
-  let count = 0;
-  for (let d = 1; d <= days; d++) {
-    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    if (!isWeekend(dateStr)) count++;
-  }
-  return count;
-}
 
 // ===================== TOAST NOTIFICATION =====================
 function showToast(type, title, msg, duration = 3000) {
