@@ -20,7 +20,7 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const PORT = parseInt(envConfig.PORT) || 3000;
+const PORT = parseInt(envConfig.PORT) || 6000;
 
 // ===================== HASHING =====================
 function hashPin(pin) {
