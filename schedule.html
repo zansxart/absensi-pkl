@@ -145,6 +145,26 @@
         </div>
       </div>
 
+      <!-- CUSTOM MODAL DIALOG (PROMPT / CONFIRM) -->
+      <div class="modal-overlay" id="modal-dialog" style="z-index: 9999;">
+        <div class="modal" style="max-width:400px; padding: 0;">
+          <div class="modal-header">
+            <h3 id="dialog-title">Dialog</h3>
+            <button class="btn-close" id="dialog-close-btn" onclick="closeDialog()">✕</button>
+          </div>
+          <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column;">
+            <p id="dialog-message" style="font-size:13.5px;color:var(--text-secondary);margin-bottom:12px;"></p>
+            <div id="dialog-input-container" style="display:none;margin-bottom:16px;">
+              <input type="text" class="form-control" id="dialog-input" placeholder="Masukkan keterangan..." style="font-size:13px;" />
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <button class="btn btn-secondary btn-sm" id="dialog-cancel-btn" onclick="closeDialog()">Batal</button>
+              <button class="btn btn-primary btn-sm" id="dialog-ok-btn">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -261,44 +281,232 @@ function showDetail(studentId, dateStr) {
 
   document.getElementById('detail-title').textContent = `${s.name} — ${formatDate(dateStr)}`;
 
+  let attendanceHtml = '';
   if (records.length === 0) {
     const cell = Attendance.getCellStatus(studentId, dateStr);
-    body.innerHTML = `
-      <div style="text-align:center;padding:12px;">
-        <p style="font-size:13px;font-weight:600;color:var(--text-secondary);">${cell.label || 'Tidak ada data'}</p>
+    attendanceHtml = `
+      <div style="text-align:center;padding:12px;background:var(--bg-card);border:1px dashed var(--border);border-radius:8px;">
+        <p style="font-size:13px;font-weight:600;color:var(--text-secondary);">${cell.label || 'Tidak ada riwayat absensi'}</p>
         ${!cell.cls.includes('libur') ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="markIzinDate('${studentId}','${dateStr}')">Tandai Izin</button>` : ''}
       </div>
     `;
   } else {
-    body.innerHTML = records.map(r => {
+    attendanceHtml = records.map(r => {
       const cls = { success: 'badge-success', warning: 'badge-warning', info: 'badge-info', danger: 'badge-danger' };
+      const isIzin = r.type === 'izin';
+      
+      const timeDisplay = isIzin 
+        ? `<div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);">-</div>`
+        : `<input type="time" class="form-control" style="width:90px;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:700;padding:4px 6px;text-align:center;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);" value="${r.time}" onchange="updateAttendanceTime('${r.id}', this.value, '${studentId}', '${dateStr}')" title="Ubah jam absensi" />`;
+
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-card);border-radius:6px;margin-bottom:6px;border:1px solid var(--border);">
           <div style="flex:1;">
             <div style="font-weight:600;font-size:13px;text-transform:capitalize;">${r.type === 'masuk' ? 'Absen Masuk' : r.type === 'pulang' ? 'Absen Pulang' : 'Izin'}</div>
             <div style="font-size:11px;color:var(--text-muted);">${r.keterangan || ''}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);">${r.time}</div>
+          <div style="text-align:right; display:flex; align-items:center; gap:8px;">
+            ${timeDisplay}
             <span class="badge ${cls[r.status] || 'badge-neutral'}">${r.statusLabel}</span>
           </div>
         </div>
       `;
     }).join('');
-    body.innerHTML += `<button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="markIzinDate('${studentId}','${dateStr}')">Ubah ke Izin</button>`;
+    attendanceHtml += `
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}')">Ubah ke Izin</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAttendanceDate('${studentId}','${dateStr}')">Hapus Absensi / Izin</button>
+      </div>
+    `;
   }
 
+  // Shift planner
+  const custom = DB.getCustomSchedule(studentId, dateStr);
+  let customStatusText = "Mengikuti Shift Profil & Weekend (Default)";
+  if (custom) {
+    if (custom.isOff) customStatusText = "Ditetapkan Libur / Off";
+    else if (custom.shift === 'P') customStatusText = "Ditetapkan Shift Pagi";
+    else if (custom.shift === 'S') customStatusText = "Ditetapkan Shift Siang";
+  }
+
+  const plannerHtml = `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);">
+      <h4 style="font-size:12.5px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">Rencana Shift & Hari Kerja</h4>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+        Status: <strong style="color:var(--accent);">${customStatusText}</strong>
+      </p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:var(--success-bg);color:var(--success);border:1px solid rgba(16,185,129,0.2);" onclick="setCustomSchedule('${studentId}','${dateStr}','P',false)">Set Pagi</button>
+        <button class="btn btn-sm" style="background:var(--info-bg);color:var(--info);border:1px solid rgba(6,182,212,0.2);" onclick="setCustomSchedule('${studentId}','${dateStr}','S',false)">Set Siang</button>
+        <button class="btn btn-sm" style="background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.2);" onclick="setCustomSchedule('${studentId}','${dateStr}',null,true)">Set Libur (Off)</button>
+        ${custom ? `<button class="btn btn-danger btn-sm" onclick="setCustomSchedule('${studentId}','${dateStr}',null,false)">Hapus Rencana</button>` : ''}
+      </div>
+    </div>
+  `;
+
+  body.innerHTML = attendanceHtml + plannerHtml;
   panel.style.display = 'block';
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function markIzinDate(studentId, dateStr) {
-  const ket = prompt('Keterangan izin:');
+function setCustomSchedule(studentId, dateStr, shift, isOff) {
+  if (shift === null && isOff === false) {
+    DB.saveCustomSchedule(studentId, dateStr, null);
+    showToast('success', 'Rencana Dihapus', 'Jadwal kembali ke pengaturan default.');
+  } else {
+    DB.saveCustomSchedule(studentId, dateStr, { shift, isOff });
+    showToast('success', 'Jadwal Diperbarui', 'Rencana berhasil disimpan.');
+  }
+  renderSchedule();
+  showDetail(studentId, dateStr);
+}
+
+async function deleteAttendanceDate(studentId, dateStr) {
+  const confirmDelete = await showCustomConfirm('Hapus Data Absensi', 'Apakah Anda yakin ingin menghapus data absensi/izin untuk tanggal ini?');
+  if (!confirmDelete) return;
+  let attendance = DB.getAttendance().filter(a => !(a.studentId === studentId && a.date === dateStr));
+  DB.saveAttendance(attendance);
+  showToast('success', 'Data Dihapus', 'Data absensi/izin berhasil dihapus.');
+  renderSchedule();
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
+  let attendance = DB.getAttendance();
+  const rec = attendance.find(a => a.id === recordId);
+  if (!rec) return;
+
+  rec.time = newTime;
+
+  // Rekalkulasi status
+  const student = DB.getStudentById(studentId);
+  const settings = DB.getSettings();
+
+  if (rec.type === 'masuk') {
+    const shift = rec.shift || student?.shift || 'P';
+    const jamMasuk = (shift === 'S' ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
+    const jamMasukMins = timeToMinutes(jamMasuk);
+    const newMins = timeToMinutes(newTime);
+    const toleransiMins = parseInt(settings.toleransi_menit) || 0;
+
+    if (newMins <= jamMasukMins + toleransiMins) {
+      rec.status = 'success';
+      rec.statusLabel = 'Tepat Waktu';
+    } else {
+      const terlambat = newMins - jamMasukMins;
+      rec.status = 'warning';
+      rec.statusLabel = `Terlambat ${terlambat} menit`;
+    }
+  } else if (rec.type === 'pulang') {
+    const shift = rec.shift || student?.shift || 'P';
+    const jamPulang = (shift === 'S' ? settings.jam_pulang_siang : settings.jam_pulang) || '16:00';
+    const jamPulangMins = timeToMinutes(jamPulang);
+    const newMins = timeToMinutes(newTime);
+
+    if (newMins < jamPulangMins) {
+      const selisih = jamPulangMins - newMins;
+      rec.status = 'danger';
+      rec.statusLabel = `Pulang Cepat ${selisih}m`;
+    } else {
+      rec.status = 'info';
+      rec.statusLabel = 'Pulang';
+    }
+  }
+
+  DB.saveAttendance(attendance);
+  showToast('success', 'Waktu Diupdate', 'Jam absensi berhasil disesuaikan.');
+  renderSchedule();
+  showDetail(studentId, dateStr);
+}
+
+async function markIzinDate(studentId, dateStr) {
+  const ket = await showCustomPrompt('Tandai Izin', 'Masukkan keterangan izin siswa:', 'Misal: Sakit, Acara keluarga...');
   if (ket === null) return;
   Attendance.markIzin(studentId, dateStr, ket);
   showToast('success', 'Izin Tersimpan', 'Izin siswa berhasil dimasukkan');
   renderSchedule();
   document.getElementById('detail-panel').style.display = 'none';
+}
+
+// CUSTOM DIALOG HELPERS
+function showCustomPrompt(title, message, placeholder = '') {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-dialog');
+    const titleEl = document.getElementById('dialog-title');
+    const messageEl = document.getElementById('dialog-message');
+    const inputContainer = document.getElementById('dialog-input-container');
+    const inputEl = document.getElementById('dialog-input');
+    const okBtn = document.getElementById('dialog-ok-btn');
+    const cancelBtn = document.getElementById('dialog-cancel-btn');
+    const closeBtn = document.getElementById('dialog-close-btn');
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    inputContainer.style.display = 'block';
+    inputEl.value = '';
+    inputEl.placeholder = placeholder;
+
+    modal.classList.add('active');
+
+    const cleanup = (value) => {
+      modal.classList.remove('active');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      closeBtn.onclick = null;
+      inputEl.onkeydown = null;
+      resolve(value);
+    };
+
+    okBtn.onclick = () => {
+      cleanup(inputEl.value.trim());
+    };
+
+    cancelBtn.onclick = () => cleanup(null);
+    closeBtn.onclick = () => cleanup(null);
+    
+    inputEl.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        cleanup(inputEl.value.trim());
+      }
+    };
+    
+    setTimeout(() => inputEl.focus(), 100);
+  });
+}
+
+function showCustomConfirm(title, message) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-dialog');
+    const titleEl = document.getElementById('dialog-title');
+    const messageEl = document.getElementById('dialog-message');
+    const inputContainer = document.getElementById('dialog-input-container');
+    const okBtn = document.getElementById('dialog-ok-btn');
+    const cancelBtn = document.getElementById('dialog-cancel-btn');
+    const closeBtn = document.getElementById('dialog-close-btn');
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    inputContainer.style.display = 'none';
+
+    modal.classList.add('active');
+
+    const cleanup = (value) => {
+      modal.classList.remove('active');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      closeBtn.onclick = null;
+      resolve(value);
+    };
+
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+    closeBtn.onclick = () => cleanup(false);
+  });
+}
+
+function closeDialog() {
+  const modal = document.getElementById('modal-dialog');
+  modal.classList.remove('active');
 }
 
 document.getElementById('btn-print-schedule').addEventListener('click', () => { window.print(); });

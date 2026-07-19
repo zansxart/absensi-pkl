@@ -254,6 +254,13 @@ function renderEval() {
             <div style="font-size:9px;color:var(--text-muted);">Sikap</div>
           </div>
         </div>
+        
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);border-top:1px dashed var(--border);padding-top:8px;margin-top:6px;flex-wrap:wrap;gap:4px 8px;">
+          <span>Masuk Awal: <strong style="color:var(--success);">${ev.stats.earlyCheckinDays || 0}x</strong> (+${(ev.stats.earlyCheckinDays || 0) * 1}p)</span>
+          <span>Lembur: <strong style="color:var(--success);">${ev.stats.overtimeDays || 0}x</strong> (+${(ev.stats.overtimeDays || 0) * 1}p)</span>
+          <span>Terlambat: <strong style="color:var(--warning);">${ev.stats.terlambat || 0}x</strong> (-${(ev.stats.terlambat || 0) * 5}p)</span>
+          <span>P. Cepat: <strong style="color:var(--danger);">${ev.stats.earlyCheckoutDays || 0}x</strong> (-${(ev.stats.earlyCheckoutDays || 0) * 5}p)</span>
+        </div>
       </div>
     `;
   }).join('') || `<div class="empty-state" style="grid-column:1/-1;"><p>Tidak ada data siswa untuk periode ini</p></div>`;

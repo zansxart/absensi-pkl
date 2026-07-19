@@ -233,7 +233,16 @@ function updateInfo() {
   document.getElementById('info-size').textContent = size + ' KB';
 }
 
-document.getElementById('btn-save-settings').addEventListener('click', () => {
+// ===================== HASHING (SHA-256 di browser) =====================
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin.toString());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+document.getElementById('btn-save-settings').addEventListener('click', async () => {
   const pinNew = document.getElementById('s-pin-new').value.trim();
   const pinConfirm = document.getElementById('s-pin-confirm').value.trim();
 
@@ -259,7 +268,14 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     jam_pulang_siang: document.getElementById('s-jam-pulang-siang').value,
     toleransi_menit: parseInt(document.getElementById('s-toleransi').value) || 15,
   };
-  if (pinNew) settings.pin = pinNew;
+
+  // Hash PIN sebelum disimpan (tidak simpan plaintext)
+  if (pinNew) {
+    settings.pin_hash = await hashPin(pinNew);
+    settings.pin = pinNew; // simpan juga plaintext untuk kompatibilitas panjang dots
+    delete settings.pin; // hapus plaintext, gunakan pin_hash saja
+    settings.pin_length = pinNew.length; // simpan panjang PIN untuk UI dots
+  }
 
   DB.saveSettings(settings);
   document.getElementById('s-pin-new').value = '';

@@ -339,6 +339,8 @@
               ? `<span class="badge badge-warning">Terlambat</span>`
               : `<span class="badge badge-success">Hadir</span>`)
           : `<span class="badge badge-danger">Belum Hadir</span>`;
+        const todayRec = todayAttendance.find(a => a.studentId === s.id && a.type === 'masuk');
+        const activeShift = todayRec?.shift || s.shift || 'P';
         return `
           <tr>
             <td>
@@ -351,7 +353,7 @@
               </div>
             </td>
             <td>${s.school}</td>
-            <td><span class="badge ${s.shift === 'P' ? 'badge-success' : 'badge-info'}">${s.shift === 'P' ? 'Pagi' : 'Siang'}</span></td>
+            <td><span class="badge ${activeShift === 'P' ? 'badge-success' : 'badge-info'}">${activeShift === 'P' ? 'Pagi' : 'Siang'}</span></td>
             <td>${statusBadge}</td>
             <td>
               <div style="display:flex;align-items:center;gap:8px;">

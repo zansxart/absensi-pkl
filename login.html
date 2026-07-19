@@ -189,7 +189,13 @@
       <button class="num-btn" data-n="9">9<sub>WXYZ</sub></button>
       <button class="num-btn" id="btn-clear" style="visibility:hidden;"></button>
       <button class="num-btn zero" data-n="0">0</button>
-      <button class="num-btn del" id="btn-del">⌫</button>
+      <button class="num-btn del" id="btn-del">
+        <svg style="width:20px;height:20px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+          <line x1="18" y1="9" x2="12" y2="15"></line>
+          <line x1="12" y1="9" x2="18" y2="15"></line>
+        </svg>
+      </button>
     </div>
 
     <div class="login-error" id="login-error">PIN salah! Silakan coba lagi.</div>
@@ -203,28 +209,51 @@
 
 <script src="js/app.js"></script>
 <script>
-const DEFAULT_PIN = '1234';
+let serverPinHash = ''; // hash dari .env via /api/config
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30 * 1000; // 30 detik lockout
+const PIN_LENGTH = 4; // panjang PIN default
 
 let pinEntry = '';
 let attempts = 0;
 let locked = false;
 
+// ===================== HASHING (SHA-256 di browser) =====================
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin.toString());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ===================== INIT =====================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Ambil config dari server (.env)
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.pin_hash) serverPinHash = cfg.pin_hash;
+      const settings = DB.getSettings();
+      const instName = settings.institution || cfg.institution || '';
+      document.getElementById('inst-name').textContent = instName;
+    }
+  } catch (e) {
+    console.warn('Gagal load config dari server:', e);
+    const settings = DB.getSettings();
+    document.getElementById('inst-name').textContent = settings.institution || '';
+  }
+
   // Jika sudah login, langsung redirect
   if (isLoggedIn()) {
     window.location.href = 'index.html';
     return;
   }
 
-  // Tampilkan nama institusi
-  const settings = DB.getSettings();
-  document.getElementById('inst-name').textContent = settings.institution || 'PKL Tracker System';
-
   // Cek lockout
   checkLockout();
+  rebuildDots();
 
   // Numpad buttons
   document.querySelectorAll('.num-btn[data-n]').forEach(btn => {
@@ -246,28 +275,31 @@ function isLoggedIn() {
   if (!session) return false;
   try {
     const data = JSON.parse(session);
-    // Session valid 8 jam
-    if (Date.now() - data.ts < 8 * 60 * 60 * 1000) return true;
+    // Session valid 8 jam & harus punya token
+    if (data.token && Date.now() - data.ts < 8 * 60 * 60 * 1000) return true;
     localStorage.removeItem(SESSION_KEY);
   } catch (e) {}
   return false;
 }
 
 // ===================== PIN INPUT =====================
-function getStoredPin() {
+function getMaxPinLen() {
   const s = DB.getSettings();
-  return s.pin || DEFAULT_PIN;
+  // Ambil panjang PIN: dari pin_length (hash mode), atau panjang pin string, atau default 4
+  return s.pin_length || (s.pin && s.pin.length) || PIN_LENGTH;
 }
 
 function addDigit(d) {
   if (locked) return;
-  const maxLen = getStoredPin().length;
+  const maxLen = 6; // max PIN length adalah 6 digit
   if (pinEntry.length >= maxLen) return;
 
   pinEntry += d;
   updateDots();
 
-  if (pinEntry.length >= maxLen) {
+  // Auto-submit saat mencapai panjang PIN yang disimpan, atau minimal 4
+  const targetLen = getMaxPinLen();
+  if (pinEntry.length >= targetLen) {
     setTimeout(checkPin, 100);
   }
 }
@@ -280,8 +312,6 @@ function deleteDigit() {
 }
 
 function updateDots() {
-  const pinLen = getStoredPin().length;
-  // Rebuild dots jika panjang PIN berubah
   const dotsContainer = document.getElementById('pin-dots');
   const dots = dotsContainer.querySelectorAll('.pin-dot');
   dots.forEach((dot, i) => {
@@ -290,42 +320,103 @@ function updateDots() {
   });
 }
 
-function checkPin() {
-  const stored = getStoredPin();
-  if (pinEntry === stored) {
-    // Success!
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() }));
-    attempts = 0;
-    localStorage.removeItem('pkl_lockout');
-    localStorage.removeItem('pkl_attempts');
+async function checkPin() {
+  const s = DB.getSettings();
 
-    // Animasi sukses
-    document.querySelectorAll('.pin-dot').forEach(d => {
-      d.classList.add('filled');
-      d.style.background = 'var(--success)';
-      d.style.borderColor = 'var(--success)';
-    });
-    showToast('success', 'Berhasil!', 'Selamat datang di PKL Tracker');
-    setTimeout(() => window.location.href = 'index.html', 600);
-  } else {
-    attempts++;
-    localStorage.setItem('pkl_attempts', attempts);
-
-    // Animasi error
-    document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
-    document.getElementById('login-error').classList.add('show');
-    if (attempts >= MAX_ATTEMPTS) {
-      startLockout();
-    } else {
-      const remaining = MAX_ATTEMPTS - attempts;
-      document.getElementById('attempt-warn').textContent = remaining > 0 ? `${remaining} percobaan tersisa sebelum dikunci` : '';
+  // Prioritas 1: Cek PIN custom dari settings (sudah di-hash dan disimpan lokal)
+  if (s.pin_hash) {
+    const inputHash = await hashPin(pinEntry);
+    if (inputHash === s.pin_hash) {
+      loginSuccess();
+      return;
     }
-    setTimeout(() => {
-      pinEntry = '';
-      updateDots();
-      clearError();
-    }, 900);
   }
+
+  // Prioritas 2: Verifikasi PIN default via server
+  try {
+    const res = await fetch('/api/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pinEntry })
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      loginSuccess(result.token);
+      return;
+    }
+  } catch (e) {
+    console.warn('Gagal verifikasi ke server, coba hash lokal:', e);
+    // Fallback: bandingkan hash di client jika server tidak bisa dihubungi
+    if (serverPinHash) {
+      const inputHash = await hashPin(pinEntry);
+      if (inputHash === serverPinHash) {
+        loginSuccess();
+        return;
+      }
+    }
+  }
+
+  // PIN salah
+  loginFailed();
+}
+
+function loginSuccess(token) {
+  const sessionToken = token || crypto.randomUUID();
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now(), token: sessionToken }));
+  attempts = 0;
+  localStorage.removeItem('pkl_lockout');
+  localStorage.removeItem('pkl_attempts');
+
+  // Animasi sukses
+  document.querySelectorAll('.pin-dot').forEach(d => {
+    d.classList.add('filled');
+    d.style.background = 'var(--success)';
+    d.style.borderColor = 'var(--success)';
+  });
+  showToast('success', 'Berhasil!', 'Selamat datang di PKL Tracker');
+
+  // Auto-backup setelah login berhasil
+  autoBackup();
+
+  setTimeout(() => window.location.href = 'index.html', 600);
+}
+
+function loginFailed() {
+  attempts++;
+  localStorage.setItem('pkl_attempts', attempts);
+
+  // Animasi error
+  document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+  document.getElementById('login-error').classList.add('show');
+  if (attempts >= MAX_ATTEMPTS) {
+    startLockout();
+  } else {
+    const remaining = MAX_ATTEMPTS - attempts;
+    document.getElementById('attempt-warn').textContent = remaining > 0 ? `${remaining} percobaan tersisa sebelum dikunci` : '';
+  }
+  setTimeout(() => {
+    pinEntry = '';
+    updateDots();
+    clearError();
+  }, 900);
+}
+
+function autoBackup() {
+  try {
+    const data = {
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      settings: DB.getSettings(),
+      students: DB.getStudents(),
+      attendance: DB.getAttendance(),
+    };
+    fetch('/api/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).catch(() => {});
+  } catch (e) {}
 }
 
 function clearError() {
@@ -383,7 +474,7 @@ function runLockoutTimer(unlockAt) {
 
 // Update dot count based on PIN length dynamically
 function rebuildDots() {
-  const pinLen = getStoredPin().length;
+  const pinLen = getMaxPinLen();
   const container = document.getElementById('pin-dots');
   container.innerHTML = '';
   for (let i = 0; i < pinLen; i++) {
@@ -393,11 +484,6 @@ function rebuildDots() {
     container.appendChild(dot);
   }
 }
-
-// Rebuild dots on load to match PIN length
-document.addEventListener('DOMContentLoaded', () => {
-  rebuildDots();
-});
 </script>
 </body>
 </html>
