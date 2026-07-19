@@ -291,6 +291,16 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    logEvent('server', `Gagal menjalankan server! Port ${PORT} sudah digunakan oleh aplikasi lain.`, 'error');
+    logEvent('server', `Solusi: Matikan aplikasi yang menggunakan port tersebut (seperti XAMPP/Apache, IIS, Skype, dll) atau ubah PORT di file .env.`, 'warn');
+  } else {
+    logEvent('server', `Terjadi error pada server: ${err.message}`, 'error');
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, () => {
   const domain = PORT === 80 ? 'http://pkl.local' : `http://pkl.local:${PORT}`;
   const local = PORT === 80 ? 'http://localhost' : `http://localhost:${PORT}`;
