@@ -135,6 +135,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---------- API: Client Log (browser kirim log ke terminal server) ----------
+  if (req.url === '/api/log' && req.method === 'POST') {
+    try {
+      const { tag, message, type } = await readBody(req);
+      if (tag && message) {
+        logEvent(tag, message, type || 'info');
+      }
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) {
+      jsonResponse(res, 400, { ok: false });
+    }
+    return;
+  }
+
   // ---------- API: Verifikasi PIN di server ----------
   if (req.url === '/api/verify-pin' && req.method === 'POST') {
     const ip = req.socket.remoteAddress || 'unknown';

@@ -22,6 +22,15 @@ const DEFAULT_SETTINGS = {
   pin: '',
 };
 
+// ===================== SERVER LOG (kirim log dari browser ke terminal server) =====================
+function serverLog(tag, message, type = 'info') {
+  fetch('/api/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tag, message, type })
+  }).catch(() => {}); // silent fail jika server tidak bisa dihubungi
+}
+
 // ===================== DATA ACCESS LAYER =====================
 const DB = {
   getSettings() {

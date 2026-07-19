@@ -330,6 +330,7 @@ document.getElementById('qr-file-input').addEventListener('change', async (e) =>
   } catch (err) {
     setStatusBar('error', 'Gagal membaca QR dari foto: ' + formatError(err));
     showToast('error', 'Gagal Mendeteksi QR', 'Pastikan foto QR Code Anda jelas dan tidak silau.');
+    serverLog('scan', `Upload foto QR gagal: ${formatError(err)}`, 'error');
   } finally {
     if (shouldResumeCamera) await startCamera(resumeCameraIndex);
   }
@@ -382,6 +383,7 @@ async function startCamera(preferredCameraIndex = null) {
 
     const activeCamera = cameras[currentCameraIndex]?.label || `kamera ${currentCameraIndex + 1}`;
     setCameraActiveUi(`Kamera aktif (${activeCamera}) — arahkan QR Code ke kotak scan`);
+    serverLog('kamera', `Kamera aktif: ${activeCamera}`, 'success');
     startNativeDetectorLoop();
   } catch (err) {
     console.error(err);
@@ -399,6 +401,7 @@ async function startCamera(preferredCameraIndex = null) {
     const msg = formatError(err);
     setStatusBar('error', 'Gagal mengakses kamera: ' + msg);
     showToast('error', 'Kamera Error', msg);
+    serverLog('kamera', `ERROR: ${msg}`, 'error');
   }
 }
 
@@ -425,6 +428,7 @@ async function stopCamera() {
   document.getElementById('btn-stop').style.display = 'none';
   document.getElementById('btn-flip').style.display = 'none';
   setStatusBar('idle', 'Kamera dimatikan');
+  serverLog('kamera', 'Kamera dimatikan', 'warn');
 }
 
 async function flipCamera() {
@@ -459,8 +463,10 @@ async function onScanSuccess(decodedText) {
 
   if (result.error) {
     setStatusBar('error', 'QR terbaca, tapi ' + result.error);
+    serverLog('scan', `GAGAL: ${result.error}`, 'warn');
   } else {
     setStatusBar('active', `${result.student.name} berhasil scan ${result.type}`);
+    serverLog('scan', `${result.student.name} — ${result.type.toUpperCase()} (${result.statusLabel})`, 'success');
   }
 
   setTimeout(() => {
