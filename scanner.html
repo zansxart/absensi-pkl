@@ -763,9 +763,9 @@ function showScanResult(result) {
   const colors = { success: 'var(--success)', warning: 'var(--warning)', info: 'var(--info)' };
   
   if (type === 'masuk') {
-    badge.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Masuk — ${statusLabel}`;
+    badge.innerHTML = `<svg style="width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Masuk — ${statusLabel}`;
   } else {
-    badge.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Pulang — ${statusLabel}`;
+    badge.innerHTML = `<svg style="width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Pulang — ${statusLabel}`;
   }
   
   badge.style.background = status === 'success' ? 'var(--success-bg)' : status === 'warning' ? 'var(--warning-bg)' : 'var(--info-bg)';
