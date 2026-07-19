@@ -7,6 +7,9 @@
   <meta name="description" content="Manajemen peserta PKL" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Cropper.js untuk memotong foto profile secara presisi -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
@@ -225,6 +228,24 @@
       <button class="btn btn-danger" id="btn-confirm-delete">Hapus</button>
     </div>
   </div>
+<!-- MODAL CROP PHOTO -->
+<div class="modal-overlay" id="modal-crop" style="z-index: 300;">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3>Potong Foto Profil</h3>
+      <button class="btn-close" id="modal-crop-close">✕</button>
+    </div>
+    <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+      <div style="width: 100%; height: 260px; background: #000; overflow: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+        <img id="crop-image" style="max-width: 100%; max-height: 100%; display: block;" />
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); text-align: center;">Posisikan foto agar pas di dalam area potong (Rasio 1:1)</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btn-crop-cancel">Batal</button>
+      <button class="btn btn-primary" id="btn-crop-confirm">Potong & Simpan</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast-container" id="toast-container"></div>
@@ -235,6 +256,7 @@ let editId = null;
 let deleteId = null;
 let photoBase64 = '';
 let currentQrStudentId = null;
+let cropperInstance = null;
 
 function renderStudents() {
   const q = document.getElementById('search-input').value.toLowerCase();
@@ -367,12 +389,56 @@ document.getElementById('photo-input').addEventListener('change', e => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    photoBase64 = ev.target.result;
-    document.getElementById('photo-img').src = photoBase64;
-    document.getElementById('photo-img').style.display = '';
-    document.getElementById('photo-placeholder').style.display = 'none';
+    // Tampilkan modal crop dan pasang source gambarnya
+    document.getElementById('crop-image').src = ev.target.result;
+    document.getElementById('modal-crop').classList.add('active');
+    
+    // Hapus instance lama jika ada
+    if (cropperInstance) {
+      cropperInstance.destroy();
+    }
+    
+    // Inisialisasi Cropper.js setelah modal render (delay sedikit agar canvas size pas)
+    setTimeout(() => {
+      cropperInstance = new Cropper(document.getElementById('crop-image'), {
+        aspectRatio: 1, // Rasio kotak 1:1
+        viewMode: 1,
+        autoCropArea: 0.95,
+        background: false,
+        zoomable: true,
+        movable: true
+      });
+    }, 120);
   };
   reader.readAsDataURL(file);
+  e.target.value = ''; // Reset input agar bisa upload file yang sama
+});
+
+function closeCropModal() {
+  document.getElementById('modal-crop').classList.remove('active');
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
+}
+
+document.getElementById('modal-crop-close').addEventListener('click', closeCropModal);
+document.getElementById('btn-crop-cancel').addEventListener('click', closeCropModal);
+
+document.getElementById('btn-crop-confirm').addEventListener('click', () => {
+  if (!cropperInstance) return;
+  
+  // Hasil potongan: 250x250px kualitas JPEG 85% (Hemat space localStorage!)
+  photoBase64 = cropperInstance.getCroppedCanvas({
+    width: 250,
+    height: 250
+  }).toDataURL('image/jpeg', 0.85);
+
+  document.getElementById('photo-img').src = photoBase64;
+  document.getElementById('photo-img').style.display = '';
+  document.getElementById('photo-placeholder').style.display = 'none';
+  
+  closeCropModal();
 });
 
 document.getElementById('btn-save').addEventListener('click', () => {
