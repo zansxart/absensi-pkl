@@ -236,8 +236,8 @@
       <button class="btn-close" id="modal-crop-close">✕</button>
     </div>
     <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
-      <div style="width: 100%; height: 260px; background: #000; overflow: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-        <img id="crop-image" style="max-width: 100%; max-height: 100%; display: block;" />
+      <div style="width: 100%; height: 300px; background: #000; overflow: hidden; border-radius: 8px; position: relative;">
+        <img id="crop-image" style="display: block; max-width: 100%;" />
       </div>
       <p style="font-size: 12px; color: var(--text-muted); text-align: center;">Posisikan foto agar pas di dalam area potong (Rasio 1:1)</p>
     </div>
@@ -389,6 +389,17 @@ document.getElementById('photo-input').addEventListener('change', e => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
+    // FALLBACK OFFLINE: Jika library Cropper.js gagal dimuat dari CDN (karena offline)
+    if (typeof Cropper === 'undefined') {
+      console.warn("Cropper.js tidak terdeteksi (mungkin sedang offline). Foto akan langsung diunggah tanpa potong.");
+      photoBase64 = ev.target.result;
+      document.getElementById('photo-img').src = photoBase64;
+      document.getElementById('photo-img').style.display = '';
+      document.getElementById('photo-placeholder').style.display = 'none';
+      showToast('info', 'Foto Profil', 'Foto diunggah langsung (editor offline)');
+      return;
+    }
+
     // Tampilkan modal crop dan pasang source gambarnya
     document.getElementById('crop-image').src = ev.target.result;
     document.getElementById('modal-crop').classList.add('active');
@@ -400,15 +411,26 @@ document.getElementById('photo-input').addEventListener('change', e => {
     
     // Inisialisasi Cropper.js setelah modal render (delay sedikit agar canvas size pas)
     setTimeout(() => {
-      cropperInstance = new Cropper(document.getElementById('crop-image'), {
-        aspectRatio: 1, // Rasio kotak 1:1
-        viewMode: 1,
-        autoCropArea: 0.95,
-        background: false,
-        zoomable: true,
-        movable: true
-      });
-    }, 120);
+      try {
+        cropperInstance = new Cropper(document.getElementById('crop-image'), {
+          aspectRatio: 1, // Rasio kotak 1:1
+          viewMode: 1,
+          autoCropArea: 0.95,
+          background: false,
+          zoomable: true,
+          movable: true
+        });
+      } catch (err) {
+        console.error("Gagal menginisialisasi Cropper:", err);
+        // Fallback langsung jika inisialisasi crash
+        photoBase64 = ev.target.result;
+        document.getElementById('photo-img').src = photoBase64;
+        document.getElementById('photo-img').style.display = '';
+        document.getElementById('photo-placeholder').style.display = 'none';
+        closeCropModal();
+        showToast('warning', 'Peringatan', 'Gagal memotong foto, diunggah langsung.');
+      }
+    }, 150);
   };
   reader.readAsDataURL(file);
   e.target.value = ''; // Reset input agar bisa upload file yang sama
@@ -428,15 +450,30 @@ document.getElementById('btn-crop-cancel').addEventListener('click', closeCropMo
 document.getElementById('btn-crop-confirm').addEventListener('click', () => {
   if (!cropperInstance) return;
   
-  // Hasil potongan: 250x250px kualitas JPEG 85% (Hemat space localStorage!)
-  photoBase64 = cropperInstance.getCroppedCanvas({
-    width: 250,
-    height: 250
-  }).toDataURL('image/jpeg', 0.85);
-
-  document.getElementById('photo-img').src = photoBase64;
-  document.getElementById('photo-img').style.display = '';
-  document.getElementById('photo-placeholder').style.display = 'none';
+  try {
+    const canvas = cropperInstance.getCroppedCanvas({
+      width: 250,
+      height: 250
+    });
+    
+    if (canvas) {
+      // Hasil potongan: 250x250px kualitas JPEG 85% (Hemat space localStorage!)
+      photoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      document.getElementById('photo-img').src = photoBase64;
+      document.getElementById('photo-img').style.display = '';
+      document.getElementById('photo-placeholder').style.display = 'none';
+    } else {
+      throw new Error("Gagal membuat canvas potongan.");
+    }
+  } catch (err) {
+    console.error("Error cropping:", err);
+    // Fallback pakai file asli yang sudah ditaruh di src crop-image
+    photoBase64 = document.getElementById('crop-image').src;
+    document.getElementById('photo-img').src = photoBase64;
+    document.getElementById('photo-img').style.display = '';
+    document.getElementById('photo-placeholder').style.display = 'none';
+    showToast('warning', 'Peringatan', 'Foto diunggah langsung tanpa dipotong.');
+  }
   
   closeCropModal();
 });
