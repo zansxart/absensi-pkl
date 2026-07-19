@@ -124,8 +124,16 @@
               <h3 style="font-size:15px;font-weight:700;">Kamera Scan</h3>
               <p style="font-size:12px;color:var(--text-muted);">Arahkan QR Code ID Card ke kamera</p>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <button class="btn btn-primary btn-sm" id="btn-start" style="display:inline-flex;align-items:center;gap:6px;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <!-- DROPDOWN PILIH KAMERA -->
+              <select id="camera-select" style="
+                font-size:12.5px; padding:0 12px; border-radius:8px; 
+                border:1px solid var(--border); background:var(--bg-secondary); 
+                color:var(--text-primary); cursor:pointer; min-width:180px; 
+                height:32px; display:none; outline:none; font-weight:600;
+                transition:var(--transition);"></select>
+
+              <button class="btn btn-primary btn-sm" id="btn-start" style="display:inline-flex;align-items:center;gap:6px;height:32px;">
                 <svg style="width:12px;height:12px;fill:currentColor;" viewBox="0 0 24 24">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
@@ -301,12 +309,53 @@ let lastFailureStatusAt = 0;
 document.addEventListener('DOMContentLoaded', () => {
   populateIzinStudents();
   renderScanLog();
+  // Coba muat kamera saat startup jika izin sudah ada
+  initCameraOptions();
 });
 
 // =================== CAMERA ===================
-document.getElementById('btn-start').addEventListener('click', startCamera);
+document.getElementById('btn-start').addEventListener('click', () => startCamera());
 document.getElementById('btn-stop').addEventListener('click', stopCamera);
 document.getElementById('btn-flip').addEventListener('click', flipCamera);
+
+document.getElementById('camera-select').addEventListener('change', async (e) => {
+  const nextIdx = parseInt(e.target.value);
+  currentCameraIndex = nextIdx;
+  if (scanning) {
+    // Restart kamera dengan kamera pilihan yang baru
+    await stopCamera();
+    await startCamera(nextIdx);
+  }
+});
+
+// Deteksi kamera di awal jika memungkinkan
+async function initCameraOptions() {
+  if (typeof Html5Qrcode === 'undefined') return;
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (devices && devices.length > 0) {
+      cameras = devices;
+      updateCameraSelectUI();
+    }
+  } catch (e) {
+    // Silent fail, user perlu klik Mulai Kamera untuk trigger request izin
+  }
+}
+
+function updateCameraSelectUI() {
+  const select = document.getElementById('camera-select');
+  if (!select || !cameras || cameras.length === 0) return;
+  
+  select.innerHTML = '';
+  cameras.forEach((cam, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = cam.label || `Kamera ${i + 1}`;
+    select.appendChild(opt);
+  });
+  select.value = currentCameraIndex;
+  select.style.display = 'inline-block';
+}
 
 // Logika pemindaian dari Upload File Foto
 document.getElementById('btn-upload-file').addEventListener('click', () => {
@@ -358,12 +407,22 @@ async function startCamera(preferredCameraIndex = null) {
       return;
     }
     cameras = devices;
+    
     if (Number.isInteger(preferredCameraIndex)) {
       currentCameraIndex = Math.max(0, Math.min(preferredCameraIndex, cameras.length - 1));
     } else {
-      currentCameraIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
-      if (currentCameraIndex < 0) currentCameraIndex = 0;
+      // Jika belum dipilih, coba default ke kamera belakang, atau kamera pertama
+      const selectedDropdown = document.getElementById('camera-select').value;
+      if (selectedDropdown !== "") {
+        currentCameraIndex = parseInt(selectedDropdown);
+      } else {
+        currentCameraIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
+        if (currentCameraIndex < 0) currentCameraIndex = 0;
+      }
     }
+
+    updateCameraSelectUI();
+    scanning = true;
 
     html5QrCode = new Html5Qrcode('qr-reader');
     const qrboxSize = getQrboxSize();
