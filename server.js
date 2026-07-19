@@ -112,13 +112,23 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
 };
+// ===================== LOGGER =====================
+function logEvent(tag, message, type = 'info') {
+  const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const reset = "\x1b[0m";
+  let color = "\x1b[36m"; // Cyan untuk info
+  if (type === 'success') color = "\x1b[32m"; // Green
+  if (type === 'warn') color = "\x1b[33m"; // Yellow
+  if (type === 'error') color = "\x1b[31m"; // Red
+
+  console.log(`[${timestamp}] [${color}${tag.toUpperCase()}${reset}] ${message}`);
+}
 
 // ===================== SERVER =====================
 const server = http.createServer(async (req, res) => {
-  console.log(`${req.method} ${req.url}`);
-
-  // ---------- API: Config (tanpa PIN & tanpa hash — hash PIN pendek bisa di-brute-force offline) ----------
+  // ---------- API: Config (tanpa PIN & tanpa hash) ----------
   if (req.url === '/api/config' && req.method === 'GET') {
+    logEvent('api', 'Config loaded by client');
     jsonResponse(res, 200, {
       institution: envConfig.INSTITUTION,
     });
@@ -129,6 +139,7 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/api/verify-pin' && req.method === 'POST') {
     const ip = req.socket.remoteAddress || 'unknown';
     if (isRateLimited(ip)) {
+      logEvent('auth', `Rate limited for IP: ${ip}`, 'error');
       jsonResponse(res, 429, { success: false, message: 'Terlalu banyak percobaan, coba lagi sebentar lagi' });
       return;
     }
@@ -142,11 +153,14 @@ const server = http.createServer(async (req, res) => {
       const serverHash = Buffer.from(hashPin(envConfig.DEFAULT_PIN));
       if (inputHash.length === serverHash.length && crypto.timingSafeEqual(inputHash, serverHash)) {
         const token = issueToken();
+        logEvent('auth', `PIN verified successfully (IP: ${ip})`, 'success');
         jsonResponse(res, 200, { success: true, token });
       } else {
+        logEvent('auth', `Incorrect PIN attempt (IP: ${ip})`, 'warn');
         jsonResponse(res, 401, { success: false, message: 'PIN salah' });
       }
     } catch (e) {
+      logEvent('api', `Error verifying PIN: ${e.message}`, 'error');
       jsonResponse(res, 400, { success: false, message: 'Request tidak valid' });
     }
     return;
@@ -155,6 +169,7 @@ const server = http.createServer(async (req, res) => {
   // ---------- API: Backup data (butuh token) ----------
   if (req.url === '/api/backup' && req.method === 'POST') {
     if (!isValidToken(req)) {
+      logEvent('auth', 'Unauthorized backup attempt', 'warn');
       jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
       return;
     }
@@ -178,8 +193,10 @@ const server = http.createServer(async (req, res) => {
         toDelete.forEach(f => fs.unlinkSync(path.join(BACKUP_DIR, f)));
       }
 
+      logEvent('backup', `Auto-backup saved: ${filename}`, 'success');
       jsonResponse(res, 200, { success: true, filename });
     } catch (e) {
+      logEvent('backup', `Failed to save backup: ${e.message}`, 'error');
       jsonResponse(res, 500, { success: false, message: 'Gagal menyimpan backup' });
     }
     return;
@@ -188,6 +205,7 @@ const server = http.createServer(async (req, res) => {
   // ---------- API: List backups (butuh token) ----------
   if (req.url === '/api/backups' && req.method === 'GET') {
     if (!isValidToken(req)) {
+      logEvent('auth', 'Unauthorized backups list attempt', 'warn');
       jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
       return;
     }
@@ -196,6 +214,7 @@ const server = http.createServer(async (req, res) => {
       .filter(f => f.startsWith('backup_') && f.endsWith('.json'))
       .sort()
       .reverse();
+    logEvent('backup', 'Backups list retrieved');
     jsonResponse(res, 200, { backups: files });
     return;
   }
@@ -203,20 +222,24 @@ const server = http.createServer(async (req, res) => {
   // ---------- API: Restore backup (butuh token) ----------
   if (req.url.startsWith('/api/backup/') && req.method === 'GET') {
     if (!isValidToken(req)) {
+      logEvent('auth', 'Unauthorized backup restore attempt', 'warn');
       jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
       return;
     }
     const filename = req.url.replace('/api/backup/', '');
     if (!filename.match(/^backup_[\d-T]+\.json$/)) {
+      logEvent('backup', `Invalid backup filename format: ${filename}`, 'warn');
       jsonResponse(res, 400, { success: false, message: 'Nama file tidak valid' });
       return;
     }
     const filePath = path.join(BACKUP_DIR, filename);
     if (!fs.existsSync(filePath)) {
+      logEvent('backup', `Backup file not found: ${filename}`, 'warn');
       jsonResponse(res, 404, { success: false, message: 'Backup tidak ditemukan' });
       return;
     }
     const data = fs.readFileSync(filePath, 'utf-8');
+    logEvent('backup', `Backup restored: ${filename}`, 'success');
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(data);
     return;
@@ -250,13 +273,18 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(filePath, (error, content) => {
     if (error) {
       if (error.code === 'ENOENT') {
+        logEvent('server', `File not found: ${urlPath}`, 'warn');
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('<h1>404 Not Found</h1>', 'utf-8');
       } else {
+        logEvent('server', `Error serving ${urlPath}: ${error.code}`, 'error');
         res.writeHead(500);
         res.end(`Server Error: ${error.code} ..\n`);
       }
     } else {
+      if (extname === '.html') {
+        logEvent('page', `Served ${urlPath}`, 'success');
+      }
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content, 'utf-8');
     }
