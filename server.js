@@ -292,8 +292,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
+  const domain = PORT === 80 ? 'http://pkl.local' : `http://pkl.local:${PORT}`;
+  const local = PORT === 80 ? 'http://localhost' : `http://localhost:${PORT}`;
   console.log(`\n==================================================`);
   console.log(`SYSTEM ABSENSI PKL RUNNING ON LOCAL SERVER`);
-  console.log(`Buka browser dan pergi ke: http://localhost:${PORT}`);
+  console.log(`Buka browser dan pergi ke:`);
+  console.log(`👉 Domain: ${domain}`);
+  console.log(`👉 Local : ${local}`);
   console.log(`==================================================\n`);
 });
