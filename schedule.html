@@ -109,6 +109,7 @@
         <span><i class="sw cell-terlambat">T</i> Terlambat</span>
         <span><i class="sw cell-alpha">A</i> Alpha</span>
         <span><i class="sw cell-izin">I</i> Izin</span>
+        <span><i class="sw cell-sakit">SK</i> Sakit</span>
         <span><i class="sw cell-libur">L</i> Libur</span>
         <span><i class="sw cell-none"></i> Belum berjalan</span>
       </div>
@@ -287,7 +288,7 @@ function showDetail(studentId, dateStr) {
     attendanceHtml = `
       <div style="text-align:center;padding:12px;background:var(--bg-card);border:1px dashed var(--border);border-radius:8px;">
         <p style="font-size:13px;font-weight:600;color:var(--text-secondary);">${cell.label || 'Tidak ada riwayat absensi'}</p>
-        ${!cell.cls.includes('libur') ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="markIzinDate('${studentId}','${dateStr}')">Tandai Izin</button>` : ''}
+        ${!cell.cls.includes('libur') ? `<div style="display:flex;gap:6px;justify-content:center;margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','izin')">Tandai Izin</button><button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','sakit')">Tandai Sakit</button></div>` : ''}
       </div>
     `;
   } else {
@@ -302,7 +303,7 @@ function showDetail(studentId, dateStr) {
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-card);border-radius:6px;margin-bottom:6px;border:1px solid var(--border);">
           <div style="flex:1;">
-            <div style="font-weight:600;font-size:13px;text-transform:capitalize;">${r.type === 'masuk' ? 'Absen Masuk' : r.type === 'pulang' ? 'Absen Pulang' : 'Izin'}</div>
+            <div style="font-weight:600;font-size:13px;text-transform:capitalize;">${r.type === 'masuk' ? 'Absen Masuk' : r.type === 'pulang' ? 'Absen Pulang' : (r.kategori === 'sakit' ? 'Sakit' : 'Izin')}</div>
             <div style="font-size:11px;color:var(--text-muted);">${r.keterangan || ''}</div>
           </div>
           <div style="text-align:right; display:flex; align-items:center; gap:8px;">
@@ -314,7 +315,8 @@ function showDetail(studentId, dateStr) {
     }).join('');
     attendanceHtml += `
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}')">Ubah ke Izin</button>
+        <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','izin')">Ubah ke Izin</button>
+        <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','sakit')">Ubah ke Sakit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteAttendanceDate('${studentId}','${dateStr}')">Hapus Absensi / Izin</button>
       </div>
     `;
@@ -401,7 +403,8 @@ function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
     const shift = rec.shift || student?.shift || 'P';
     const jamPulang = (shift === 'S' ? settings.jam_pulang_siang : settings.jam_pulang) || '16:00';
     const jamPulangMins = timeToMinutes(jamPulang);
-    const newMins = timeToMinutes(newTime);
+    // Record pulang lewat tengah malam dihitung +24 jam
+    const newMins = timeToMinutes(newTime) + (rec.overnight ? 1440 : 0);
 
     if (newMins < jamPulangMins) {
       const selisih = jamPulangMins - newMins;
@@ -409,7 +412,7 @@ function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
       rec.statusLabel = `Pulang Cepat ${selisih}m`;
     } else {
       rec.status = 'info';
-      rec.statusLabel = 'Pulang';
+      rec.statusLabel = rec.overnight ? 'Pulang (lewat tengah malam)' : 'Pulang';
     }
   }
 
@@ -419,11 +422,21 @@ function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
   showDetail(studentId, dateStr);
 }
 
-async function markIzinDate(studentId, dateStr) {
-  const ket = await showCustomPrompt('Tandai Izin', 'Masukkan keterangan izin siswa:', 'Misal: Sakit, Acara keluarga...');
+async function markIzinDate(studentId, dateStr, kategori = 'izin') {
+  const label = kategori === 'sakit' ? 'Sakit' : 'Izin';
+  const ket = await showCustomPrompt(`Tandai ${label}`, `Masukkan keterangan ${label.toLowerCase()} siswa:`, kategori === 'sakit' ? 'Misal: Demam, rawat inap...' : 'Misal: Acara keluarga...');
   if (ket === null) return;
-  Attendance.markIzin(studentId, dateStr, ket);
-  showToast('success', 'Izin Tersimpan', 'Izin siswa berhasil dimasukkan');
+  let result = Attendance.markIzin(studentId, dateStr, ket, kategori);
+  if (result.needConfirm) {
+    const ok = await showCustomConfirm('Timpa Record Hadir?', `Siswa sudah punya record masuk/pulang di tanggal ini. Menandai ${label} akan MENGHAPUS record tersebut. Lanjutkan?`);
+    if (!ok) return;
+    result = Attendance.markIzin(studentId, dateStr, ket, kategori, true);
+  }
+  if (result.error) {
+    showToast('error', 'Gagal', result.error);
+    return;
+  }
+  showToast('success', `${label} Tersimpan`, `${label} siswa berhasil dimasukkan`);
   renderSchedule();
   document.getElementById('detail-panel').style.display = 'none';
 }

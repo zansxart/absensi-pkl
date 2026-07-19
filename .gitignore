@@ -1,3 +1,5 @@
 node_modules/
+.qa-backup*
+
 .agents/
 backups/

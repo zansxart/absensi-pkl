@@ -147,6 +147,7 @@
                     <th>Terlambat</th>
                     <th>Alpha</th>
                     <th>Izin</th>
+                    <th>Sakit</th>
                     <th>Hari Kerja</th>
                     <th>% Hadir</th>
                     <th>Status</th>
@@ -289,6 +290,7 @@ function renderReport() {
         <td style="color:var(--warning);font-weight:700;">${stats.terlambat}</td>
         <td style="color:var(--danger);font-weight:700;">${stats.alpha}</td>
         <td style="color:var(--info);font-weight:700;">${stats.izin}</td>
+        <td style="color:#a855f7;font-weight:700;">${stats.sakit || 0}</td>
         <td>${stats.workdays}</td>
         <td>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -318,15 +320,17 @@ function renderReport() {
       const masuk = records.find(r => r.type === 'masuk');
       const pulang = records.find(r => r.type === 'pulang');
       const izin = records.find(r => r.type === 'izin');
+      const effOff = Attendance.getEffectiveDay(s, dateStr).isOff;
 
-      if (isWknd) {
+      if (effOff && !masuk && !izin) {
         rows += `<tr style="opacity:0.4;">
           <td>${formatDateShort(dateStr)}</td>
           <td>${dayNames[dow]}</td>
           <td colspan="4" style="text-align:center;color:var(--text-muted);">Libur</td>
         </tr>`;
       } else {
-        const statusMasuk = masuk ? (masuk.status === 'warning' ? `<span class="badge badge-warning">Terlambat</span>` : `<span class="badge badge-success">Tepat</span>`) : (izin ? `<span class="badge badge-info">Izin</span>` : (dateStr > getToday() ? '' : `<span class="badge badge-danger">Alpha</span>`));
+        const izinBadge = izin ? (izin.kategori === 'sakit' ? `<span class="badge" style="background:rgba(168,85,247,0.16);color:#a855f7;">Sakit</span>` : `<span class="badge badge-info">Izin</span>`) : null;
+        const statusMasuk = masuk ? (masuk.status === 'warning' ? `<span class="badge badge-warning">Terlambat</span>` : `<span class="badge badge-success">Tepat</span>`) : (izinBadge ? izinBadge : (dateStr >= getToday() ? '' : `<span class="badge badge-danger">Alpha</span>`));
         rows += `<tr>
           <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${formatDateShort(dateStr)}</td>
           <td>${dayNames[dow]}</td>

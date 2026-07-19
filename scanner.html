@@ -259,8 +259,15 @@
                 </select>
               </div>
               <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Kategori</label>
+                <select class="form-control" id="izin-kategori" style="font-size:13px;">
+                  <option value="izin">Izin</option>
+                  <option value="sakit">Sakit</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
                 <label class="form-label">Keterangan</label>
-                <input type="text" class="form-control" id="izin-keterangan" placeholder="Misal: Sakit, Keperluan keluarga..." style="font-size:13px;" />
+                <input type="text" class="form-control" id="izin-keterangan" placeholder="Misal: Acara keluarga, demam..." style="font-size:13px;" />
               </div>
               <button class="btn btn-primary btn-sm" id="btn-izin" style="width:100%;"> Simpan Izin</button>
             </div>
@@ -760,9 +767,15 @@ function populateIzinStudents() {
 document.getElementById('btn-izin').addEventListener('click', () => {
   const studentId = document.getElementById('izin-student').value;
   const ket = document.getElementById('izin-keterangan').value;
+  const kategori = document.getElementById('izin-kategori').value;
   if (!studentId) { showToast('warning', 'Pilih Siswa', 'Pilih siswa terlebih dahulu'); return; }
-  Attendance.markIzin(studentId, getToday(), ket);
-  showToast('success', 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} — Izin hari ini`);
+  let result = Attendance.markIzin(studentId, getToday(), ket, kategori);
+  if (result.needConfirm) {
+    if (!confirm('Siswa ini sudah punya record hadir hari ini. Menandai izin/sakit akan MENGHAPUS record masuk/pulangnya. Lanjutkan?')) return;
+    result = Attendance.markIzin(studentId, getToday(), ket, kategori, true);
+  }
+  if (result.error) { showToast('error', 'Gagal', result.error); return; }
+  showToast('success', kategori === 'sakit' ? 'Sakit Tersimpan' : 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} — ${kategori === 'sakit' ? 'Sakit' : 'Izin'} hari ini`);
   document.getElementById('izin-keterangan').value = '';
   renderScanLog();
 });

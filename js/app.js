@@ -42,6 +42,18 @@ const DB = {
   saveAttendance(data) {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(data));
   },
+  // Append satu record dengan baca-ulang terakhir + tolak duplikat tipe per hari.
+  // Meminimalkan jendela lost-update saat 2 tab/perangkat scanner aktif bersamaan.
+  appendAttendance(record) {
+    const latest = DB.getAttendance();
+    if (record.type !== 'izin') {
+      const dup = latest.find(a => a.studentId === record.studentId && a.date === record.date && a.type === record.type);
+      if (dup) return { error: 'Record sudah ada (kemungkinan scan ganda dari perangkat lain)' };
+    }
+    latest.push(record);
+    DB.saveAttendance(latest);
+    return { success: true };
+  },
   getStudentById(id) {
     return DB.getStudents().find(s => s.id === id) || null;
   },
@@ -77,6 +89,12 @@ const DB = {
 function getToday() {
   // Tanggal lokal (bukan UTC) — toISOString menggeser tanggal sebelum jam 07:00 WIB
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function addDays(dateStr, delta) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -141,6 +159,17 @@ function getMonthName(month) {
 // ===================== ATTENDANCE LOGIC =====================
 const Attendance = {
   /**
+   * Hari kerja efektif: custom schedule menang atas aturan weekend.
+   * { isOff, shift } — shift efektif untuk tanggal tsb.
+   */
+  getEffectiveDay(student, dateStr) {
+    const custom = DB.getCustomSchedule(student.id, dateStr);
+    const isOff = custom ? !!custom.isOff : isWeekend(dateStr);
+    const shift = (custom && custom.shift) || student.shift || 'P';
+    return { isOff, shift, custom };
+  },
+
+  /**
    * Rekam absensi masuk/keluar setelah scan QR
    * @returns { status, type, record }
    */
@@ -150,46 +179,68 @@ const Attendance = {
     if (!student) return { error: 'Siswa tidak ditemukan' };
 
     const today = getToday();
+    const now = new Date();
+    const nowTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const nowMins = timeToMinutes(nowTime);
+    const toleransiMins = parseInt(settings.toleransi_menit) || 0;
+
+    // ---- Pulang lewat tengah malam (shift siang): scan dini hari < 06:00
+    //      dianggap pulang untuk shift kemarin yang belum checkout.
+    if (nowMins < 6 * 60) {
+      const yesterday = addDays(today, -1);
+      const yRecords = DB.getAttendance().filter(a => a.studentId === studentId && a.date === yesterday);
+      const yMasuk = yRecords.find(r => r.type === 'masuk');
+      const yPulang = yRecords.find(r => r.type === 'pulang');
+      if (yMasuk && !yPulang) {
+        const durasi = (1440 - timeToMinutes(yMasuk.time)) + nowMins;
+        if (durasi < 120) return { error: 'Belum waktunya pulang (minimal 2 jam setelah masuk)' };
+        const record = {
+          id: generateId(),
+          studentId,
+          date: yesterday,
+          type: 'pulang',
+          timestamp: now.toISOString(),
+          time: nowTime,
+          overnight: true, // jam pulang < jam masuk karena lewat tengah malam
+          status: 'info',
+          statusLabel: 'Pulang (lewat tengah malam)',
+          shift: yMasuk.shift || student.shift || 'S',
+        };
+        const saved = DB.appendAttendance(record);
+        if (saved.error) return { error: saved.error };
+        return { record, student, type: 'pulang', status: record.status, statusLabel: record.statusLabel };
+      }
+    }
+
     if (student.startDate && today < student.startDate) {
       return { error: 'Periode PKL belum dimulai' };
     }
     if (student.endDate && today > student.endDate) {
       return { error: 'Periode PKL sudah berakhir' };
     }
-    const now = new Date();
-    const nowTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-    const nowMins = timeToMinutes(nowTime);
 
-    let attendance = DB.getAttendance();
-    const todayRecords = attendance.filter(a => a.studentId === studentId && a.date === today);
+    const eff = Attendance.getEffectiveDay(student, today);
+    if (eff.isOff) {
+      return { error: 'Hari ini bukan hari kerja (libur/weekend) — scan tidak dicatat' };
+    }
+
+    const todayRecords = DB.getAttendance().filter(a => a.studentId === studentId && a.date === today);
     const hasMasuk = todayRecords.find(r => r.type === 'masuk');
     const hasPulang = todayRecords.find(r => r.type === 'pulang');
     const hasIzin = todayRecords.find(r => r.type === 'izin');
 
-    if (hasIzin) return { error: `${student.name} sudah tercatat Izin hari ini` };
-
-    // Tentukan shift aktif (jika belum masuk, deteksi berdasarkan jam scan; jika sudah masuk, gunakan shift masuknya)
-    let activeShift = student.shift || 'P';
-    if (!hasMasuk) {
-      const custom = DB.getCustomSchedule(studentId, today);
-      if (custom && custom.shift) {
-        activeShift = custom.shift;
-      } else {
-        const jamMasukPagiMins = timeToMinutes(settings.jam_masuk || '08:00');
-        const jamMasukSiangMins = timeToMinutes(settings.jam_masuk_siang || '13:00');
-        if (jamMasukSiangMins > jamMasukPagiMins) {
-          const midpointMins = Math.round((jamMasukPagiMins + jamMasukSiangMins) / 2);
-          activeShift = nowMins <= midpointMins ? 'P' : 'S';
-        }
-      }
-    } else {
-      activeShift = hasMasuk.shift || student.shift || 'P';
+    if (hasIzin) {
+      const lbl = hasIzin.kategori === 'sakit' ? 'Sakit' : 'Izin';
+      return { error: `${student.name} sudah tercatat ${lbl} hari ini` };
     }
+
+    // Shift mengikuti jadwal siswa (custom schedule > profil).
+    // Jam scan TIDAK menentukan shift — mencegah "telat 4 jam jadi tepat waktu shift siang".
+    const activeShift = hasMasuk ? (hasMasuk.shift || eff.shift) : eff.shift;
 
     const isSiang = activeShift === 'S';
     const jamMasuk = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
     const jamMasukMins = timeToMinutes(jamMasuk);
-    const toleransiMins = parseInt(settings.toleransi_menit) || 0;
 
     let type, statusLabel, statusClass;
 
@@ -209,7 +260,7 @@ const Attendance = {
       const masukTimeMins = timeToMinutes(hasMasuk.time);
       if (nowMins >= masukTimeMins + 120) {
         type = 'pulang';
-        
+
         // Cek apakah pulang cepat
         const jamPulang = (isSiang ? settings.jam_pulang_siang : settings.jam_pulang) || '16:00';
         const jamPulangMins = timeToMinutes(jamPulang);
@@ -240,14 +291,17 @@ const Attendance = {
       shift: activeShift,
     };
 
-    attendance.push(record);
-    DB.saveAttendance(attendance);
+    const saved = DB.appendAttendance(record);
+    if (saved.error) return { error: saved.error };
 
     return { record, student, type, status: statusClass, statusLabel };
   },
 
   /**
-   * Hitung statistik kehadiran siswa dalam rentang bulan
+   * Hitung statistik kehadiran siswa dalam rentang bulan.
+   * - Menghormati custom schedule (libur custom ≠ alpha, hari kerja custom di weekend dihitung).
+   * - Hari ini tidak dihitung alpha sebelum ada record (hari belum selesai).
+   * - Sakit dihitung terpisah dari izin.
    */
   getMonthStats(studentId, year, month) {
     const days = getDaysInMonth(year, month);
@@ -255,12 +309,11 @@ const Attendance = {
     const student = DB.getStudentById(studentId);
     const settings = DB.getSettings();
     const today = getToday();
-    let hadir = 0, terlambat = 0, alpha = 0, izin = 0, workdays = 0;
+    let hadir = 0, terlambat = 0, alpha = 0, izin = 0, sakit = 0, workdays = 0;
     let earlyCheckinDays = 0, overtimeDays = 0, earlyCheckoutDays = 0;
 
     for (let d = 1; d <= days; d++) {
       const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      if (isWeekend(dateStr)) continue;
       // Di luar periode PKL siswa → tidak dihitung
       if (student?.startDate && dateStr < student.startDate) continue;
       if (student?.endDate && dateStr > student.endDate) continue;
@@ -270,12 +323,16 @@ const Attendance = {
       const pulang = records.find(r => r.type === 'pulang');
       const izinRec = records.find(r => r.type === 'izin');
 
-      // Hari yang belum terjadi tidak dihitung sebagai hari kerja/alpha
-      if (dateStr > today && !masuk && !izinRec) continue;
+      const eff = student ? Attendance.getEffectiveDay(student, dateStr) : { isOff: isWeekend(dateStr), shift: 'P' };
+      // Hari libur efektif: hanya dihitung bila siswa nyatanya hadir (kerja di hari libur)
+      if (eff.isOff && !masuk && !izinRec) continue;
+      // Hari ini & masa depan tanpa record → belum terjadi, bukan alpha
+      if (dateStr >= today && !masuk && !izinRec) continue;
 
       workdays++;
       if (izinRec) {
-        izin++;
+        if (izinRec.kategori === 'sakit') sakit++;
+        else izin++;
       } else if (!masuk) {
         alpha++;
       } else {
@@ -283,9 +340,9 @@ const Attendance = {
         if (masuk.status === 'warning') {
           terlambat++;
         }
-        
+
         // Hitung bonus masuk lebih awal (minimal 5 menit sebelum jam masuk)
-        const shift = masuk.shift || student?.shift || 'P';
+        const shift = masuk.shift || eff.shift;
         const jamMasuk = (shift === 'S' ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
         const jamMasukMins = timeToMinutes(jamMasuk);
         const checkinMins = timeToMinutes(masuk.time);
@@ -297,7 +354,8 @@ const Attendance = {
         if (pulang) {
           const jamPulang = (shift === 'S' ? settings.jam_pulang_siang : settings.jam_pulang) || '16:00';
           const jamPulangMins = timeToMinutes(jamPulang);
-          const checkoutMins = timeToMinutes(pulang.time);
+          // Pulang lewat tengah malam: +24 jam agar tidak terbaca "pulang cepat"
+          const checkoutMins = timeToMinutes(pulang.time) + (pulang.overnight ? 1440 : 0);
           if (checkoutMins >= jamPulangMins + 15) {
             overtimeDays++;
           } else if (checkoutMins < jamPulangMins) {
@@ -308,43 +366,51 @@ const Attendance = {
     }
 
     const pct = workdays > 0 ? Math.round((hadir / workdays) * 100) : 0;
-    return { hadir, terlambat, alpha, izin, workdays, pct, earlyCheckinDays, overtimeDays, earlyCheckoutDays };
+    return { hadir, terlambat, alpha, izin, sakit, workdays, pct, earlyCheckinDays, overtimeDays, earlyCheckoutDays };
   },
 
   /**
-   * Tandai izin manual
+   * Tandai izin/sakit manual.
+   * @param kategori 'izin' | 'sakit'
+   * @param force true = timpa record hadir yang sudah ada (harus lewat konfirmasi UI)
+   * @returns { success } | { error, needConfirm }
    */
-  markIzin(studentId, date, keterangan = '') {
+  markIzin(studentId, date, keterangan = '', kategori = 'izin', force = false) {
+    const student = DB.getStudentById(studentId);
+    if (!student) return { error: 'Siswa tidak ditemukan' };
+    if (student.startDate && date < student.startDate) return { error: 'Tanggal di luar periode PKL (sebelum mulai)' };
+    if (student.endDate && date > student.endDate) return { error: 'Tanggal di luar periode PKL (sesudah selesai)' };
+    if (date > getToday()) return { error: 'Tidak bisa menandai izin untuk tanggal yang belum terjadi' };
+
     let attendance = DB.getAttendance();
+    const existing = attendance.filter(a => a.studentId === studentId && a.date === date);
+    const hasHadir = existing.some(a => a.type === 'masuk' || a.type === 'pulang');
+    if (hasHadir && !force) {
+      return { error: 'Siswa sudah punya record hadir di tanggal ini', needConfirm: true };
+    }
+
     // Izin menggantikan semua record hari itu (masuk/pulang/izin lama)
     attendance = attendance.filter(a => !(a.studentId === studentId && a.date === date));
     attendance.push({
       id: generateId(),
       studentId, date,
       type: 'izin',
+      kategori: kategori === 'sakit' ? 'sakit' : 'izin',
       timestamp: new Date().toISOString(),
       time: '-', status: 'info',
-      statusLabel: 'Izin',
+      statusLabel: kategori === 'sakit' ? 'Sakit' : 'Izin',
       keterangan,
     });
     DB.saveAttendance(attendance);
+    return { success: true };
   },
 
   /**
    * Dapatkan status sel jadwal untuk tanggal tertentu
    */
   getCellStatus(studentId, dateStr) {
-    const custom = DB.getCustomSchedule(studentId, dateStr);
     const student = DB.getStudentById(studentId);
-    
-    // Cek libur (dari custom schedule atau weekend bawaan)
-    const isWknd = isWeekend(dateStr);
-    const isCustomLibur = custom && custom.isOff;
-    const isCustomWork = custom && !custom.isOff;
-    
-    if ((isWknd && !isCustomWork) || isCustomLibur) {
-      return { code: 'L', label: 'Libur', cls: 'cell-libur' };
-    }
+    const custom = DB.getCustomSchedule(studentId, dateStr);
 
     // Di luar periode PKL siswa → kosong, bukan Alpha
     if (student?.startDate && dateStr < student.startDate) return { code: '', label: '', cls: '' };
@@ -353,22 +419,32 @@ const Attendance = {
     const records = DB.getAttendance().filter(a => a.studentId === studentId && a.date === dateStr);
     const masuk = records.find(r => r.type === 'masuk');
     const izin = records.find(r => r.type === 'izin');
-    if (izin) return { code: 'I', label: 'Izin', cls: 'cell-izin' };
+    if (izin) {
+      if (izin.kategori === 'sakit') return { code: 'SK', label: 'Sakit', cls: 'cell-sakit' };
+      return { code: 'I', label: 'Izin', cls: 'cell-izin' };
+    }
+
+    const eff = student ? Attendance.getEffectiveDay(student, dateStr) : { isOff: isWeekend(dateStr), shift: 'P' };
+
+    // Hadir di hari libur tetap ditampilkan sebagai hadir (bukan disembunyikan di balik "Libur")
+    if (eff.isOff && !masuk) {
+      return { code: 'L', label: 'Libur', cls: 'cell-libur' };
+    }
 
     if (!masuk) {
       const today = getToday();
       if (dateStr >= today) {
-        const shift = (custom && custom.shift) || student?.shift || 'P';
-        return { 
-          code: shift, 
-          label: `Rencana Shift ${shift === 'P' ? 'Pagi' : 'Siang'}`, 
-          cls: shift === 'P' ? 'cell-planned-p' : 'cell-planned-s' 
+        const shift = eff.shift;
+        return {
+          code: shift,
+          label: `Rencana Shift ${shift === 'P' ? 'Pagi' : 'Siang'}`,
+          cls: shift === 'P' ? 'cell-planned-p' : 'cell-planned-s'
         };
       }
       return { code: 'A', label: 'Alpha', cls: 'cell-alpha' };
     }
-    
-    const shift = masuk.shift || (custom && custom.shift) || student?.shift || 'P';
+
+    const shift = masuk.shift || eff.shift;
     if (masuk.status === 'warning') return { code: 'T', label: 'Terlambat', cls: 'cell-terlambat', shift };
     return { code: shift, label: shift === 'P' ? 'Pagi' : 'Siang', cls: shift === 'P' ? 'cell-hadir cell-shift-p' : 'cell-hadir cell-shift-s' };
   },

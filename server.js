@@ -20,7 +20,7 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const PORT = parseInt(envConfig.PORT);
+const PORT = parseInt(envConfig.PORT) || 3000;
 
 // ===================== HASHING =====================
 function hashPin(pin) {
@@ -29,6 +29,48 @@ function hashPin(pin) {
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+// ===================== SESSION TOKENS (in-memory, 8 jam) =====================
+const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
+const activeTokens = new Map(); // token -> expiresAt
+
+function issueToken() {
+  const token = generateToken();
+  activeTokens.set(token, Date.now() + TOKEN_TTL_MS);
+  return token;
+}
+
+function isValidToken(req) {
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) return false;
+  const exp = activeTokens.get(token);
+  if (!exp) return false;
+  if (Date.now() > exp) { activeTokens.delete(token); return false; }
+  return true;
+}
+
+// Bersihkan token kedaluwarsa tiap jam
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, exp] of activeTokens) if (now > exp) activeTokens.delete(t);
+}, 60 * 60 * 1000).unref();
+
+// ===================== RATE LIMIT VERIFY-PIN =====================
+const pinAttempts = new Map(); // ip -> { count, resetAt }
+const PIN_MAX_ATTEMPTS = 10;
+const PIN_WINDOW_MS = 60 * 1000;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = pinAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    pinAttempts.set(ip, { count: 1, resetAt: now + PIN_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > PIN_MAX_ATTEMPTS;
 }
 
 // ===================== BACKUP =====================
@@ -75,27 +117,31 @@ const MIME_TYPES = {
 const server = http.createServer(async (req, res) => {
   console.log(`${req.method} ${req.url}`);
 
-  // ---------- API: Config (tanpa PIN!) ----------
+  // ---------- API: Config (tanpa PIN & tanpa hash — hash PIN pendek bisa di-brute-force offline) ----------
   if (req.url === '/api/config' && req.method === 'GET') {
     jsonResponse(res, 200, {
       institution: envConfig.INSTITUTION,
-      pin_hash: hashPin(envConfig.DEFAULT_PIN), // kirim hash, bukan plaintext
     });
     return;
   }
 
   // ---------- API: Verifikasi PIN di server ----------
   if (req.url === '/api/verify-pin' && req.method === 'POST') {
+    const ip = req.socket.remoteAddress || 'unknown';
+    if (isRateLimited(ip)) {
+      jsonResponse(res, 429, { success: false, message: 'Terlalu banyak percobaan, coba lagi sebentar lagi' });
+      return;
+    }
     try {
       const { pin } = await readBody(req);
       if (!pin) {
         jsonResponse(res, 400, { success: false, message: 'PIN diperlukan' });
         return;
       }
-      const inputHash = hashPin(pin);
-      const serverHash = hashPin(envConfig.DEFAULT_PIN);
-      if (inputHash === serverHash) {
-        const token = generateToken();
+      const inputHash = Buffer.from(hashPin(pin));
+      const serverHash = Buffer.from(hashPin(envConfig.DEFAULT_PIN));
+      if (inputHash.length === serverHash.length && crypto.timingSafeEqual(inputHash, serverHash)) {
+        const token = issueToken();
         jsonResponse(res, 200, { success: true, token });
       } else {
         jsonResponse(res, 401, { success: false, message: 'PIN salah' });
@@ -106,8 +152,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ---------- API: Backup data ----------
+  // ---------- API: Backup data (butuh token) ----------
   if (req.url === '/api/backup' && req.method === 'POST') {
+    if (!isValidToken(req)) {
+      jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
+      return;
+    }
     try {
       const data = await readBody(req);
       ensureBackupDir();
@@ -135,8 +185,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ---------- API: List backups ----------
+  // ---------- API: List backups (butuh token) ----------
   if (req.url === '/api/backups' && req.method === 'GET') {
+    if (!isValidToken(req)) {
+      jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
+      return;
+    }
     ensureBackupDir();
     const files = fs.readdirSync(BACKUP_DIR)
       .filter(f => f.startsWith('backup_') && f.endsWith('.json'))
@@ -146,8 +200,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ---------- API: Restore backup ----------
+  // ---------- API: Restore backup (butuh token) ----------
   if (req.url.startsWith('/api/backup/') && req.method === 'GET') {
+    if (!isValidToken(req)) {
+      jsonResponse(res, 401, { success: false, message: 'Tidak terautentikasi' });
+      return;
+    }
     const filename = req.url.replace('/api/backup/', '');
     if (!filename.match(/^backup_[\d-T]+\.json$/)) {
       jsonResponse(res, 400, { success: false, message: 'Nama file tidak valid' });

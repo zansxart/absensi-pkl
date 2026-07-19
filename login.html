@@ -209,7 +209,7 @@
 
 <script src="js/app.js"></script>
 <script>
-let serverPinHash = ''; // hash dari .env via /api/config
+let serverPinHash = ''; // (tidak dipakai lagi — verifikasi PIN selalu via server)
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30 * 1000; // 30 detik lockout
 const PIN_LENGTH = 4; // panjang PIN default
@@ -234,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const res = await fetch('/api/config');
     if (res.ok) {
       const cfg = await res.json();
-      if (cfg.pin_hash) serverPinHash = cfg.pin_hash;
       const settings = DB.getSettings();
       const instName = settings.institution || cfg.institution || '';
       document.getElementById('inst-name').textContent = instName;
@@ -346,15 +345,9 @@ async function checkPin() {
       return;
     }
   } catch (e) {
-    console.warn('Gagal verifikasi ke server, coba hash lokal:', e);
-    // Fallback: bandingkan hash di client jika server tidak bisa dihubungi
-    if (serverPinHash) {
-      const inputHash = await hashPin(pinEntry);
-      if (inputHash === serverPinHash) {
-        loginSuccess();
-        return;
-      }
-    }
+    console.warn('Gagal verifikasi ke server:', e);
+    // Server tidak bisa dihubungi & tidak ada PIN custom lokal → tolak login.
+    // (Fallback hash offline dihapus: hash PIN pendek bisa di-brute-force dari client.)
   }
 
   // PIN salah
@@ -404,6 +397,7 @@ function loginFailed() {
 
 function autoBackup() {
   try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     const data = {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
@@ -413,7 +407,7 @@ function autoBackup() {
     };
     fetch('/api/backup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token || ''}` },
       body: JSON.stringify(data)
     }).catch(() => {});
   } catch (e) {}
