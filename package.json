@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npx -y concurrently \"node server.js\" \"npx -y browser-sync start --proxy localhost:3000 --files '*.html, css/*.css, js/*.js'\""
+    "dev": "npx -y concurrently \"node server.js\" \"npx -y browser-sync start --proxy localhost:80 --files '*.html, css/*.css, js/*.js'\""
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8"
