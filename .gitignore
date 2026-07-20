@@ -1,7 +1,9 @@
 node_modules/
 .qa-backup*
 
+.env
 .agents/
 backups/
 certs/
 data/
+
