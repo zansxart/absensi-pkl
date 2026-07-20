@@ -415,6 +415,27 @@ document.getElementById('qr-file-input').addEventListener('change', async (e) =>
 async function startCamera(preferredCameraIndex = null) {
   if (scanning) return;
 
+  // Kamera hanya bisa diakses di secure context (HTTPS atau localhost).
+  // Ini penyebab "Browser tidak mendukung akses kamera" saat dibuka via http://IP-LAN.
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    let hint = 'Buka halaman ini lewat HTTPS agar kamera bisa diakses.';
+    try {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      if (cfg.https_active && cfg.https_port) {
+        const httpsUrl = `https://${window.location.hostname}:${cfg.https_port}${window.location.pathname}`;
+        hint = `Buka lewat: ${httpsUrl} (terima peringatan sertifikat sekali). Atau gunakan tombol "Upload Foto QR" di bawah.`;
+        setStatusBar('error', 'Kamera butuh HTTPS — ' + hint);
+        showToast('warning', 'Kamera Butuh HTTPS', hint, 8000);
+        serverLog('kamera', `Blocked: bukan secure context (${window.location.origin}) → arahkan ke ${httpsUrl}`, 'warn');
+        return;
+      }
+    } catch (e) {}
+    setStatusBar('error', 'Kamera tidak tersedia: ' + hint);
+    showToast('warning', 'Kamera Tidak Tersedia', hint + ' Alternatif: fitur Upload Foto QR tetap berfungsi.', 8000);
+    serverLog('kamera', `Blocked: bukan secure context (${window.location.origin})`, 'warn');
+    return;
+  }
+
   stopScanHelpers();
   clearReader();
   scanFailureCount = 0;

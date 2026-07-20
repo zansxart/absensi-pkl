@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -21,6 +22,40 @@ if (fs.existsSync(envPath)) {
 }
 
 const PORT = parseInt(envConfig.PORT) || 6000;
+
+// ===================== HTTPS (wajib agar kamera bisa diakses dari HP/LAN) =====================
+// Browser hanya mengizinkan getUserMedia (kamera) di secure context: HTTPS atau localhost.
+const HTTPS_PORT = parseInt(envConfig.HTTPS_PORT) || PORT + 1;
+const CERT_DIR = path.join(__dirname, 'certs');
+const KEY_FILE = path.join(CERT_DIR, 'server.key');
+const CRT_FILE = path.join(CERT_DIR, 'server.crt');
+let httpsActive = false;
+
+function lanIPs() {
+  const os = require('os');
+  const ips = [];
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const it of list || []) {
+      if (it.family === 'IPv4' && !it.internal) ips.push(it.address);
+    }
+  }
+  return ips;
+}
+
+function ensureCert() {
+  if (fs.existsSync(KEY_FILE) && fs.existsSync(CRT_FILE)) return true;
+  try {
+    fs.mkdirSync(CERT_DIR, { recursive: true });
+    const sans = ['DNS:pkl.local', 'DNS:localhost', 'IP:127.0.0.1', ...lanIPs().map(ip => 'IP:' + ip)].join(',');
+    require('child_process').execSync(
+      `openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -keyout "${KEY_FILE}" -out "${CRT_FILE}" -subj "/CN=pkl.local" -addext "subjectAltName=${sans}"`,
+      { stdio: 'ignore' }
+    );
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 // ===================== HASHING =====================
 function hashPin(pin) {
@@ -155,7 +190,7 @@ function logEvent(tag, message, type = 'info') {
 }
 
 // ===================== SERVER =====================
-const server = http.createServer(async (req, res) => {
+const requestHandler = async (req, res) => {
   // CORS headers untuk akses LAN
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -168,7 +203,9 @@ const server = http.createServer(async (req, res) => {
     const settings = readData('settings') || {};
     jsonResponse(res, 200, {
       institution: settings.institution || envConfig.INSTITUTION || 'Sistem Absensi PKL',
-      pin_length: settings.pin_length || 4
+      pin_length: settings.pin_length || 4,
+      https_port: HTTPS_PORT,
+      https_active: httpsActive,
     });
     return;
   }
@@ -489,7 +526,9 @@ const server = http.createServer(async (req, res) => {
       res.end(content, 'utf-8');
     }
   });
-});
+};
+
+const server = http.createServer(requestHandler);
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
@@ -511,3 +550,32 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`👉 Local : ${local}`);
   console.log(`==================================================\n`);
 });
+
+// HTTPS: dibutuhkan agar KAMERA scanner bisa dipakai dari HP / perangkat LAN.
+// Sertifikat self-signed dibuat otomatis (sekali) — browser akan menampilkan
+// peringatan "not private" sekali, pilih Advanced/Lanjutkan, setelah itu kamera aktif.
+if (ensureCert()) {
+  try {
+    const httpsServer = https.createServer(
+      { key: fs.readFileSync(KEY_FILE), cert: fs.readFileSync(CRT_FILE) },
+      requestHandler
+    );
+    httpsServer.on('error', (err) => {
+      logEvent('https', `HTTPS error: ${err.message}`, 'error');
+    });
+    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+      httpsActive = true;
+      const ips = lanIPs();
+      console.log(`==================================================`);
+      console.log(`HTTPS AKTIF — WAJIB untuk scanner kamera di HP:`);
+      console.log(`👉 https://pkl.local:${HTTPS_PORT}`);
+      ips.forEach(ip => console.log(`👉 https://${ip}:${HTTPS_PORT}`));
+      console.log(`(Peringatan sertifikat di browser cukup di-Lanjutkan sekali)`);
+      console.log(`==================================================\n`);
+    });
+  } catch (e) {
+    logEvent('https', `HTTPS tidak aktif: ${e.message}. Kamera hanya bisa dipakai via http://localhost:${PORT}`, 'warn');
+  }
+} else {
+  logEvent('https', `Gagal membuat sertifikat (openssl tidak tersedia). Kamera hanya bisa dipakai via http://localhost:${PORT}, atau pakai fitur Upload Foto QR.`, 'warn');
+}
