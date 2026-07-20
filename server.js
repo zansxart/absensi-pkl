@@ -357,7 +357,10 @@ const requestHandler = async (req, res) => {
 
   // ---------- API: Verifikasi PIN di server ----------
   if (req.url === '/api/verify-pin' && req.method === 'POST') {
-    const ip = req.socket.remoteAddress || 'unknown';
+    // Di belakang nginx semua koneksi berasal dari 127.0.0.1 —
+    // pakai X-Forwarded-For agar rate limit per pengunjung, bukan global.
+    const fwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = fwd || req.socket.remoteAddress || 'unknown';
     if (isRateLimited(ip)) {
       logEvent('auth', `Rate limited for IP: ${ip}`, 'error');
       jsonResponse(res, 429, { success: false, message: 'Terlalu banyak percobaan, coba lagi sebentar lagi' });
