@@ -554,6 +554,13 @@ function logout() {
   window.location.href = 'login.html';
 }
 
+// ===================== PWA (ikon "Install App" di HP/desktop) =====================
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', () => {
   const isLoginPage = window.location.pathname.includes('login.html');

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scan QR – Sistem Absensi PKL</title>
   <meta name="description" content="Scan QR Code ID Card siswa PKL untuk absensi masuk dan pulang" />
+  <link rel="icon" type="image/x-icon" href="/img/favicon.ico" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1d4ed8" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="node_modules/html5-qrcode/html5-qrcode.min.js"></script>
 </head>
@@ -580,15 +584,30 @@ function playScanAnim(type, message) {
 }
 
 // =================== QR SCAN ===================
+// Jeda antar-scan: cukup untuk melihat centang, tapi orang berikutnya tidak lama menunggu.
+const SCAN_COOLDOWN_MS = 2500;
+// QR yang SAMA di-ignore lebih lama, supaya kartu yang masih di depan kamera
+// tidak langsung memicu scan kedua ("belum waktunya pulang").
+const SAME_QR_DEBOUNCE_MS = 6000;
+let lastScanAt = 0;
+
+function releaseScanCooldown(delayMs = SCAN_COOLDOWN_MS) {
+  setTimeout(() => {
+    scanCooldown = false;
+    if (scanning) startScanHintTimer();
+  }, delayMs);
+}
+
 async function onScanSuccess(decodedText) {
   if (scanCooldown) return;
 
   const qrText = String(decodedText || '').trim();
   if (!qrText) return;
-  if (qrText === lastScanId) return;
+  if (qrText === lastScanId && Date.now() - lastScanAt < SAME_QR_DEBOUNCE_MS) return;
 
   scanCooldown = true;
   lastScanId = qrText;
+  lastScanAt = Date.now();
   stopScanHintTimer();
   setStatusBar('loading', 'QR terbaca, memproses absensi...');
 
@@ -596,78 +615,58 @@ async function onScanSuccess(decodedText) {
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   playBeep();
 
-  const studentId = extractStudentIdFromQr(qrText);
+  // try/finally: apa pun yang terjadi (termasuk error tak terduga),
+  // cooldown SELALU dilepas — scanner tidak pernah macet sampai harus refresh.
+  try {
+    const studentId = extractStudentIdFromQr(qrText);
 
-  const modeSelect = document.getElementById('scan-mode-select');
-  const mode = modeSelect ? modeSelect.value : 'absen';
+    const modeSelect = document.getElementById('scan-mode-select');
+    const mode = modeSelect ? modeSelect.value : 'absen';
 
-  if (mode === 'test') {
-    const students = await DB.getStudents();
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
-      setStatusBar('error', 'Tes: QR Tidak Dikenal');
-      playScanAnim('error', 'Tidak Dikenal');
-      showScanResult({ error: 'QR Code tidak terdaftar', student: null });
-    } else {
-      setStatusBar('active', `Tes Berhasil: ${student.name}`);
-      playScanAnim('success', student.name);
-      
-      // Mock result object for testing UI
-      const mockResult = {
-        student: student,
-        type: 'tes',
-        statusLabel: 'TES SCAN',
-        error: null
-      };
-      
-      const resCard = document.getElementById('result-card');
-      const resDefault = document.getElementById('result-default');
-      const resSuccess = document.getElementById('result-success');
-      
-      resDefault.style.display = 'none';
-      resSuccess.style.display = 'block';
-      resCard.className = 'result-card success';
-      
-      document.getElementById('res-name').textContent = student.name;
-      document.getElementById('res-nis').textContent = student.nis + ' • ' + student.major;
-      document.getElementById('res-school').textContent = student.school;
-      document.getElementById('res-type').textContent = 'Tes Scan Saja';
-      document.getElementById('res-time').textContent = '—';
-      document.getElementById('res-type-badge').className = 'badge badge-info';
-      document.getElementById('res-type-badge').textContent = 'TES';
-      
-      if (student.photo) {
-        document.getElementById('res-avatar-img').src = student.photo;
-        document.getElementById('res-avatar-img').style.display = '';
-        document.getElementById('res-avatar-fallback').style.display = 'none';
+    if (mode === 'test') {
+      const students = await DB.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) {
+        setStatusBar('error', 'Tes: QR Tidak Dikenal');
+        playScanAnim('error', 'Tidak Dikenal');
+        showScanResult({ error: 'QR Code tidak terdaftar (mode tes)', student: null });
       } else {
-        document.getElementById('res-avatar-img').style.display = 'none';
-        document.getElementById('res-avatar-fallback').style.display = 'flex';
-        document.getElementById('res-avatar-fallback').textContent = getInitials(student.name);
+        setStatusBar('active', `Tes Berhasil: ${student.name} — siap scan berikutnya`);
+        playScanAnim('success', `${student.name} — TES OK`);
+        // Tampilkan kartu hasil memakai elemen yang sama dengan mode absen
+        showScanResult({
+          student,
+          type: 'masuk',
+          status: 'info',
+          statusLabel: 'TES SCAN (tidak dicatat)',
+          record: { time: getCurrentTime().slice(0, 5).replace('.', ':') },
+        });
+        serverLog('scan', `TES: ${student.name} QR valid`, 'info');
+      }
+    } else {
+      // Mode Absen (Default)
+      const result = await Attendance.record(studentId);
+      showScanResult(result);
+      await renderScanLog();
+
+      if (result.error) {
+        setStatusBar('error', 'QR terbaca, tapi ' + result.error);
+        serverLog('scan', `GAGAL: ${result.error}`, 'warn');
+        playScanAnim('error', result.error);
+      } else {
+        setStatusBar('active', `${result.student.name} berhasil ${result.type} — siap scan berikutnya`);
+        serverLog('scan', `${result.student.name} — ${result.type.toUpperCase()} (${result.statusLabel})`, 'success');
+        playScanAnim('success', `${result.student.name} — ${result.type === 'masuk' ? 'MASUK' : 'PULANG'}`);
       }
     }
-  } else {
-    // Mode Absen (Default)
-    const result = await Attendance.record(studentId);
-    showScanResult(result);
-    await renderScanLog();
-
-    if (result.error) {
-      setStatusBar('error', 'QR terbaca, tapi ' + result.error);
-      serverLog('scan', `GAGAL: ${result.error}`, 'warn');
-      playScanAnim('error', 'Gagal Absen');
-    } else {
-      setStatusBar('active', `${result.student.name} berhasil scan ${result.type}`);
-      serverLog('scan', `${result.student.name} — ${result.type.toUpperCase()} (${result.statusLabel})`, 'success');
-      playScanAnim('success', result.type.toUpperCase());
-    }
+  } catch (err) {
+    console.error('Scan error:', err);
+    setStatusBar('error', 'Terjadi kesalahan: ' + formatError(err));
+    playScanAnim('error', 'Terjadi Kesalahan');
+    serverLog('scan', `ERROR: ${formatError(err)}`, 'error');
+  } finally {
+    releaseScanCooldown();
   }
-
-  setTimeout(() => {
-    scanCooldown = false;
-    lastScanId = null;
-    if (scanning) startScanHintTimer();
-  }, 3000);
 }
 
 function onScanFailure() {
@@ -891,7 +890,7 @@ function showScanResult(result) {
   }
 
   document.getElementById('result-name').textContent = student.name;
-  document.getElementById('result-school').textContent = `${student.school} • ${student.major}`;
+  document.getElementById('result-school').textContent = student.major ? `${student.school} • ${student.major}` : student.school;
   document.getElementById('result-time').textContent = record.time;
 
   const badge = document.getElementById('result-status-badge');
