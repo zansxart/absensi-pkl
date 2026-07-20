@@ -496,6 +496,13 @@ tbody tr:hover td { background: rgba(255,255,255,0.015); color: var(--text-prima
 }
 .sched-day.weekend .sd-dow, .sched-day.weekend .sd-num { color: var(--danger); opacity: 0.7; }
 .sched-day.today .sd-dow, .sched-day.today .sd-num { color: var(--accent); opacity: 1; }
+.sched-day.selected {
+  background: rgba(59,130,246,0.22);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  border-radius: 6px;
+}
+.sched-day.selected .sd-dow, .sched-day.selected .sd-num { color: var(--accent); opacity: 1; }
+.sched-day { user-select: none; }
 
 /* Kolom nama siswa (sticky kiri) */
 .sched-name-col {
