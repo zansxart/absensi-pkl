@@ -250,7 +250,7 @@ async function renderSchedule() {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
     const isWknd = dow === 0 || dow === 6;
     const isToday = dateStr === today;
-    header += `<th class="sched-day${isWknd ? ' weekend' : ''}${isToday ? ' today' : ''}">
+    header += `<th class="sched-day${isWknd ? ' weekend' : ''}${isToday ? ' today' : ''}" style="cursor:pointer;" onclick="showBulkDayPlanner('${dateStr}')" title="Atur jadwal serentak untuk hari ini">
       <span class="sd-dow">${DAY_NAMES[dow]}</span>
       <span class="sd-num">${d}</span>
     </th>`;
@@ -262,7 +262,7 @@ async function renderSchedule() {
       ? `<img src="${s.photo}" class="sched-avatar" />`
       : `<div class="sched-avatar sched-avatar-fallback">${getInitials(s.name)}</div>`;
 
-    let cells = `<td class="sched-name-col">
+    let cells = `<td class="sched-name-col" style="cursor:pointer;" onclick="showBulkStudentPlanner('${s.id}')" title="Atur jadwal 1 bulan penuh untuk ${s.name}">
       <div class="sched-student">
         ${avatar}
         <div class="sched-student-info">
@@ -395,6 +395,199 @@ async function deleteAttendanceDate(studentId, dateStr) {
   await DB.saveAttendance(attendance);
   showToast('success', 'Data Dihapus', 'Data absensi/izin berhasil dihapus.');
   await renderSchedule();
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+// ====== BULK PLANNERS ======
+async function showBulkDayPlanner(dateStr) {
+  const panel = document.getElementById('detail-panel');
+  const body = document.getElementById('detail-body');
+  
+  document.getElementById('detail-title').textContent = `Jadwal Serentak (Semua Siswa) — ${formatDate(dateStr)}`;
+  
+  const plannerHtml = `
+    <div style="padding-top:8px;">
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">
+        Atur shift (Pagi/Siang) atau Libur (Off) untuk <strong>seluruh siswa</strong> pada tanggal ini.
+      </p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:var(--success-bg);color:var(--success);border:1px solid rgba(16,185,129,0.2);" onclick="setCustomScheduleBulkDay('${dateStr}','P',false)">Set Semua Pagi</button>
+        <button class="btn btn-sm" style="background:var(--info-bg);color:var(--info);border:1px solid rgba(6,182,212,0.2);" onclick="setCustomScheduleBulkDay('${dateStr}','S',false)">Set Semua Siang</button>
+        <button class="btn btn-sm" style="background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.2);" onclick="setCustomScheduleBulkDay('${dateStr}',null,true)">Set Semua Libur (Off)</button>
+        <button class="btn btn-danger btn-sm" onclick="setCustomScheduleBulkDay('${dateStr}',null,false)">Hapus Semua Rencana (Default)</button>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border);">
+      <p style="font-size:12.5px;font-weight:600;margin-bottom:8px;color:var(--text-primary);">Pola Rotasi Otomatis (Semua Siswa)</p>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">Menerapkan rotasi 3 hari ganti shift mulai dari tanggal ini sampai akhir bulan. Hari Minggu di-skip.</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);" onclick="setCustomSchedulePatternAll('${dateStr}', 'P', 3, 'S', 3)">Mulai Pagi (3 Hari) ➔ Siang (3 Hari)</button>
+        <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);" onclick="setCustomSchedulePatternAll('${dateStr}', 'S', 3, 'P', 3)">Mulai Siang (3 Hari) ➔ Pagi (3 Hari)</button>
+      </div>
+    </div>
+  `;
+  body.innerHTML = plannerHtml;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function setCustomScheduleBulkDay(dateStr, shift, isOff) {
+  const students = await DB.getStudents();
+  let schedules = await DB.getCustomSchedules();
+  
+  for (const s of students) {
+    delete schedules[`${s.id}_${dateStr}`];
+  }
+  
+  if (shift !== null || isOff !== false) {
+    for (const s of students) {
+      schedules[`${s.id}_${dateStr}`] = { shift, isOff };
+    }
+  }
+  
+  await DB.saveCustomSchedules(schedules);
+  DB._invalidate('schedules');
+  await renderSchedule();
+  
+  showToast('success', 'Jadwal Serentak Diperbarui', `Berhasil mengatur jadwal semua siswa untuk tanggal ${formatDate(dateStr)}.`);
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+async function setCustomSchedulePatternAll(startDateStr, shiftA, daysA, shiftB, daysB) {
+  const students = await DB.getStudents();
+  let schedules = await DB.getCustomSchedules();
+  const days = getDaysInMonth(currentYear, currentMonth);
+  const startDay = parseInt(startDateStr.split('-')[2]);
+
+  let currentShift = shiftA;
+  let counter = 0;
+
+  for (let d = startDay; d <= days; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    
+    // Hapus setting lama untuk hari itu
+    for (const s of students) {
+      delete schedules[`${s.id}_${dateStr}`];
+    }
+    
+    // Hari Minggu tidak dihitung sebagai hari kerja shift
+    if (dow === 0) {
+      continue; 
+    }
+    
+    // Tetapkan shift
+    for (const s of students) {
+      schedules[`${s.id}_${dateStr}`] = { shift: currentShift, isOff: false };
+    }
+
+    // Tambah counter rotasi
+    counter++;
+    let limit = (currentShift === shiftA) ? daysA : daysB;
+    if (counter >= limit) {
+      counter = 0;
+      currentShift = (currentShift === shiftA) ? shiftB : shiftA;
+    }
+  }
+  
+  await DB.saveCustomSchedules(schedules);
+  DB._invalidate('schedules');
+  await renderSchedule();
+  
+  showToast('success', 'Pola Rotasi Diterapkan', `Berhasil mengatur jadwal rotasi semua siswa mulai dari tanggal ${formatDate(startDateStr)}.`);
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+async function showBulkStudentPlanner(studentId) {
+  const s = await DB.getStudentById(studentId);
+  if (!s) return;
+  const panel = document.getElementById('detail-panel');
+  const body = document.getElementById('detail-body');
+  
+  document.getElementById('detail-title').textContent = `Jadwal Sebulan Penuh — ${s.name}`;
+  
+  const plannerHtml = `
+    <div style="padding-top:8px;">
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">
+        Atur shift (Pagi/Siang) atau Libur (Off) untuk <strong>${s.name}</strong> selama <strong>satu bulan penuh</strong> (${getMonthName(currentMonth)} ${currentYear}).
+      </p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:var(--success-bg);color:var(--success);border:1px solid rgba(16,185,129,0.2);" onclick="setCustomScheduleBulkStudent('${studentId}','P',false)">Set Sebulan Pagi</button>
+        <button class="btn btn-sm" style="background:var(--info-bg);color:var(--info);border:1px solid rgba(6,182,212,0.2);" onclick="setCustomScheduleBulkStudent('${studentId}','S',false)">Set Sebulan Siang</button>
+        <button class="btn btn-sm" style="background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.2);" onclick="setCustomScheduleBulkStudent('${studentId}',null,true)">Set Sebulan Libur (Off)</button>
+        <button class="btn btn-danger btn-sm" onclick="setCustomScheduleBulkStudent('${studentId}',null,false)">Hapus Rencana Sebulan (Default)</button>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border);">
+      <p style="font-size:12.5px;font-weight:600;margin-bottom:8px;color:var(--text-primary);">Pola Rotasi Otomatis (Berulang sebulan)</p>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">Cocok untuk pergantian shift berkala (misal tiap 3 hari). Hari Minggu otomatis di-skip dari hitungan.</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);" onclick="setCustomSchedulePattern('${studentId}', 'P', 3, 'S', 3)">Pagi (3 Hari) ➔ Siang (3 Hari)</button>
+        <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);" onclick="setCustomSchedulePattern('${studentId}', 'S', 3, 'P', 3)">Siang (3 Hari) ➔ Pagi (3 Hari)</button>
+      </div>
+    </div>
+  `;
+  body.innerHTML = plannerHtml;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function setCustomScheduleBulkStudent(studentId, shift, isOff) {
+  let schedules = await DB.getCustomSchedules();
+  const days = getDaysInMonth(currentYear, currentMonth);
+  
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    delete schedules[`${studentId}_${dateStr}`];
+    if (shift !== null || isOff !== false) {
+      schedules[`${studentId}_${dateStr}`] = { shift, isOff };
+    }
+  }
+  
+  await DB.saveCustomSchedules(schedules);
+  DB._invalidate('schedules');
+  await renderSchedule();
+  
+  showToast('success', 'Jadwal 1 Bulan Diperbarui', `Berhasil mengatur jadwal sebulan penuh.`);
+  document.getElementById('detail-panel').style.display = 'none';
+}
+
+async function setCustomSchedulePattern(studentId, shiftA, daysA, shiftB, daysB) {
+  let schedules = await DB.getCustomSchedules();
+  const days = getDaysInMonth(currentYear, currentMonth);
+  
+  let currentShift = shiftA;
+  let counter = 0;
+
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    
+    // Hapus setting lama untuk hari itu
+    delete schedules[`${studentId}_${dateStr}`];
+    
+    // Hari Minggu tidak dihitung sebagai hari kerja shift
+    if (dow === 0) {
+      continue; 
+    }
+    
+    // Tetapkan shift
+    schedules[`${studentId}_${dateStr}`] = { shift: currentShift, isOff: false };
+
+    // Tambah counter rotasi
+    counter++;
+    let limit = (currentShift === shiftA) ? daysA : daysB;
+    if (counter >= limit) {
+      counter = 0;
+      currentShift = (currentShift === shiftA) ? shiftB : shiftA;
+    }
+  }
+  
+  await DB.saveCustomSchedules(schedules);
+  DB._invalidate('schedules');
+  await renderSchedule();
+  
+  showToast('success', 'Pola Rotasi Diterapkan', `Berhasil mengatur jadwal berulang ${daysA} hari ${shiftA === 'P'?'Pagi':'Siang'} dan ${daysB} hari ${shiftB === 'P'?'Pagi':'Siang'}.`);
   document.getElementById('detail-panel').style.display = 'none';
 }
 
