@@ -315,7 +315,7 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   const domain = PORT === 80 ? 'http://pkl.local' : `http://pkl.local:${PORT}`;
   const local = PORT === 80 ? 'http://localhost' : `http://localhost:${PORT}`;
   console.log(`\n==================================================`);
