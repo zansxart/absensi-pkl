@@ -503,6 +503,12 @@ tbody tr:hover td { background: rgba(255,255,255,0.015); color: var(--text-prima
 }
 .sched-day.selected .sd-dow, .sched-day.selected .sd-num { color: var(--accent); opacity: 1; }
 .sched-day { user-select: none; }
+.sched-cell.selected {
+  box-shadow: 0 0 0 2.5px var(--accent), 0 0 10px rgba(59,130,246,0.45);
+  transform: scale(1.08);
+  z-index: 2;
+  position: relative;
+}
 
 /* Kolom nama siswa (sticky kiri) */
 .sched-name-col {

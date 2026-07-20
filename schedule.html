@@ -195,84 +195,100 @@
 <script>
 let currentYear, currentMonth;
 
-// ===================== MULTI-SELECT TANGGAL =====================
-// Klik header tanggal → masuk daftar pilihan; klik lagi → batal.
-// Shift+klik → pilih rentang dari tanggal terakhir yang diklik.
-const selectedDates = new Set();
-let lastClickedDate = null;
+// ===================== MULTI-SELECT KOTAK (per siswa per tanggal) =====================
+// Klik kotak di baris siswa → pilih kotak itu; klik lagi → batal.
+// Shift+klik → pilih rentang tanggal pada baris siswa yang sama.
+// Klik ganda kotak → buka detail absensi (seperti dulu).
+// Klik header tanggal → pilih/batal 1 kolom penuh (semua siswa yang tampil).
+const selectedCells = new Set(); // isi: `${studentId}_${dateStr}`
+let lastClickedCell = null;      // { sid, date }
 
-function toggleDateSelect(dateStr, ev) {
-  if (ev && ev.shiftKey && lastClickedDate) {
-    // Pilih rentang lastClickedDate..dateStr (dua arah)
-    const [from, to] = lastClickedDate <= dateStr ? [lastClickedDate, dateStr] : [dateStr, lastClickedDate];
+function toggleCellSelect(sid, dateStr, ev) {
+  const key = `${sid}_${dateStr}`;
+  if (ev && ev.shiftKey && lastClickedCell && lastClickedCell.sid === sid) {
+    // Rentang tanggal pada baris siswa yang sama (dua arah)
+    const [from, to] = lastClickedCell.date <= dateStr
+      ? [lastClickedCell.date, dateStr] : [dateStr, lastClickedCell.date];
     let d = from;
     while (d <= to) {
-      selectedDates.add(d);
+      selectedCells.add(`${sid}_${d}`);
       d = addDays(d, 1);
     }
-  } else if (selectedDates.has(dateStr)) {
-    selectedDates.delete(dateStr);
+  } else if (selectedCells.has(key)) {
+    selectedCells.delete(key);
   } else {
-    selectedDates.add(dateStr);
+    selectedCells.add(key);
   }
-  lastClickedDate = dateStr;
+  lastClickedCell = { sid, date: dateStr };
+  refreshSelectionUI();
+}
+
+// Klik header tanggal = toggle satu kolom (semua siswa yang sedang tampil)
+function toggleColumnSelect(dateStr) {
+  const cellEls = [...document.querySelectorAll(`.sched-cell[data-cell$="_${dateStr}"]`)];
+  const keys = cellEls.map(el => el.dataset.cell);
+  const allSelected = keys.length > 0 && keys.every(k => selectedCells.has(k));
+  keys.forEach(k => allSelected ? selectedCells.delete(k) : selectedCells.add(k));
   refreshSelectionUI();
 }
 
 function clearDateSelection() {
-  selectedDates.clear();
-  lastClickedDate = null;
+  selectedCells.clear();
+  lastClickedCell = null;
   refreshSelectionUI();
 }
 
 // Update tampilan tanpa render ulang penuh (biar cepat saat klik-klik)
 function refreshSelectionUI() {
-  document.querySelectorAll('.sched-day[data-date]').forEach(th => {
-    th.classList.toggle('selected', selectedDates.has(th.dataset.date));
+  document.querySelectorAll('.sched-cell[data-cell]').forEach(el => {
+    el.classList.toggle('selected', selectedCells.has(el.dataset.cell));
   });
   const bar = document.getElementById('bulk-select-bar');
   const count = document.getElementById('bulk-select-count');
   const target = document.getElementById('bulk-select-target');
-  if (selectedDates.size === 0) {
+  if (selectedCells.size === 0) {
     bar.style.display = 'none';
     return;
   }
   bar.style.display = 'flex';
-  const dates = [...selectedDates].sort();
-  const label = dates.length <= 4
-    ? dates.map(d => Number(d.slice(8))).join(', ')
-    : `${Number(dates[0].slice(8))}–${Number(dates[dates.length-1].slice(8))} (${dates.length} tgl)`;
-  count.textContent = `Tanggal terpilih: ${label}`;
-  const filterStudent = document.getElementById('filter-student');
-  target.textContent = filterStudent.value
-    ? `untuk ${filterStudent.options[filterStudent.selectedIndex].text}`
-    : 'untuk SEMUA siswa';
+
+  // Rangkum: per siswa, tanggal berapa saja
+  const bySid = new Map();
+  for (const key of selectedCells) {
+    const i = key.indexOf('_');
+    const sid = key.slice(0, i), date = key.slice(i + 1);
+    if (!bySid.has(sid)) bySid.set(sid, []);
+    bySid.get(sid).push(Number(date.slice(8)));
+  }
+  const dateCount = selectedCells.size;
+  count.textContent = `${dateCount} kotak terpilih`;
+
+  const names = [...bySid.entries()].map(([sid, dts]) => {
+    const el = document.querySelector(`.sched-name-col[data-sid="${sid}"] .sched-student-name`);
+    const nm = el ? el.textContent.trim().split(' ')[0] : sid;
+    dts.sort((a, b) => a - b);
+    return `${nm} (tgl ${dts.join(',')})`;
+  });
+  target.textContent = names.length <= 3 ? names.join(' · ') : `${bySid.size} siswa`;
 }
 
 async function applyShiftToSelection(shift, isOff) {
-  if (selectedDates.size === 0) return;
-  const filterStudent = document.getElementById('filter-student').value;
-  const allStudents = await DB.getStudents();
-  const students = filterStudent ? allStudents.filter(s => s.id === filterStudent) : allStudents;
-  if (students.length === 0) { showToast('warning', 'Tidak Ada Siswa', 'Tidak ada siswa untuk diatur'); return; }
-
+  if (selectedCells.size === 0) return;
   const schedules = await DB.getCustomSchedules();
-  const dates = [...selectedDates].sort();
 
-  for (const s of students) {
-    for (const dateStr of dates) {
-      if (shift === null && isOff === false) {
-        delete schedules[`${s.id}_${dateStr}`]; // kembali ke default
-      } else {
-        schedules[`${s.id}_${dateStr}`] = { shift, isOff };
-      }
+  for (const key of selectedCells) {
+    if (shift === null && isOff === false) {
+      delete schedules[key]; // kembali ke default
+    } else {
+      schedules[key] = { shift, isOff };
     }
   }
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
 
+  const jumlah = selectedCells.size;
   const aksi = isOff ? 'Libur (Off)' : shift === null ? 'Default' : shift === 'P' ? 'Shift Pagi' : 'Shift Siang';
-  showToast('success', 'Jadwal Diterapkan', `${aksi} → ${dates.length} tanggal × ${students.length} siswa`);
+  showToast('success', 'Jadwal Diterapkan', `${aksi} → ${jumlah} kotak`);
   clearDateSelection();
   await renderSchedule();
 }
@@ -349,8 +365,7 @@ async function renderSchedule() {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
     const isWknd = dow === 0 || dow === 6;
     const isToday = dateStr === today;
-    const isSelected = selectedDates.has(dateStr);
-    header += `<th class="sched-day${isWknd ? ' weekend' : ''}${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" data-date="${dateStr}" style="cursor:pointer;" onclick="toggleDateSelect('${dateStr}', event)" ondblclick="showBulkDayPlanner('${dateStr}')" title="Klik: pilih tanggal (Shift+klik = rentang) lalu pilih shift di bar atas. Klik ganda: menu serentak & pola rotasi">
+    header += `<th class="sched-day${isWknd ? ' weekend' : ''}${isToday ? ' today' : ''}" data-date="${dateStr}" style="cursor:pointer;" onclick="toggleColumnSelect('${dateStr}')" ondblclick="showBulkDayPlanner('${dateStr}')" title="Klik: pilih 1 kolom (semua siswa). Klik ganda: menu serentak & pola rotasi">
       <span class="sd-dow">${DAY_NAMES[dow]}</span>
       <span class="sd-num">${d}</span>
     </th>`;
@@ -362,7 +377,7 @@ async function renderSchedule() {
       ? `<img src="${s.photo}" class="sched-avatar" />`
       : `<div class="sched-avatar sched-avatar-fallback">${getInitials(s.name)}</div>`;
 
-    let cells = `<td class="sched-name-col" style="cursor:pointer;" onclick="showBulkStudentPlanner('${s.id}')" title="Atur jadwal 1 bulan penuh untuk ${s.name}">
+    let cells = `<td class="sched-name-col" data-sid="${s.id}" style="cursor:pointer;" onclick="showBulkStudentPlanner('${s.id}')" title="Atur jadwal 1 bulan penuh untuk ${s.name}">
       <div class="sched-student">
         ${avatar}
         <div class="sched-student-info">
@@ -377,8 +392,9 @@ async function renderSchedule() {
       const cell = Attendance.getCellStatus(s.id, dateStr, allStudents, allAttendance, customSchedules);
       const isToday = dateStr === today;
       const cls = cell.cls || 'cell-none';
-      const tooltip = `${d} ${getMonthName(currentMonth)} — ${cell.label || 'Belum berjalan'}`;
-      cells += `<td class="sched-cell-td"><button type="button" class="sched-cell ${cls}${isToday ? ' today' : ''}" title="${tooltip}" onclick="showDetail('${s.id}','${dateStr}')">${cell.code}</button></td>`;
+      const tooltip = `${s.name} — ${d} ${getMonthName(currentMonth)} — ${cell.label || 'Belum berjalan'}`;
+      const isSelected = selectedCells.has(`${s.id}_${dateStr}`);
+      cells += `<td class="sched-cell-td"><button type="button" class="sched-cell ${cls}${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" data-cell="${s.id}_${dateStr}" title="${tooltip} — Klik: pilih untuk atur shift. Klik ganda: detail absensi" onclick="toggleCellSelect('${s.id}','${dateStr}', event)" ondblclick="showDetail('${s.id}','${dateStr}')">${cell.code}</button></td>`;
     }
     return `<tr>${cells}</tr>`;
   }).join('');
@@ -392,6 +408,9 @@ async function renderSchedule() {
 }
 
 async function showDetail(studentId, dateStr) {
+  // Dipanggil via klik-ganda: batalkan efek 2x klik-tunggal yang terlanjur men-toggle kotak ini
+  selectedCells.delete(`${studentId}_${dateStr}`);
+  refreshSelectionUI();
   const [s, allAttendance, custom] = await Promise.all([
     DB.getStudentById(studentId),
     DB.getAttendance(),
