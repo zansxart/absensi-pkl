@@ -176,29 +176,32 @@
 <script>
 let currentYear, currentMonth;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth() + 1;
-  populateFilter();
-  renderSchedule();
+  await populateFilter();
+  await renderSchedule();
 });
 
-document.getElementById('btn-prev-month').addEventListener('click', () => {
+document.getElementById('btn-prev-month').addEventListener('click', async () => {
   currentMonth--;
   if (currentMonth < 1) { currentMonth = 12; currentYear--; }
-  renderSchedule();
+  await renderSchedule();
 });
-document.getElementById('btn-next-month').addEventListener('click', () => {
+document.getElementById('btn-next-month').addEventListener('click', async () => {
   currentMonth++;
   if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-  renderSchedule();
+  await renderSchedule();
 });
-document.getElementById('filter-student').addEventListener('change', renderSchedule);
+document.getElementById('filter-student').addEventListener('change', async () => {
+  await renderSchedule();
+});
 
-function populateFilter() {
+async function populateFilter() {
   const sel = document.getElementById('filter-student');
-  DB.getStudents().forEach(s => {
+  const students = await DB.getStudents();
+  students.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
     opt.textContent = s.name;
@@ -208,13 +211,24 @@ function populateFilter() {
 
 const DAY_NAMES = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-function renderSchedule() {
+async function renderSchedule() {
   const label = document.getElementById('month-label');
   label.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
   document.getElementById('schedule-title').textContent = `JADWAL PKL — ${getMonthName(currentMonth).toUpperCase()} ${currentYear}`;
 
   const filterStudent = document.getElementById('filter-student').value;
-  let students = DB.getStudents();
+  
+  // Refresh cache
+  DB._invalidate('students');
+  DB._invalidate('attendance');
+  DB._invalidate('schedules');
+  const [allStudents, allAttendance, customSchedules] = await Promise.all([
+    DB.getStudents(),
+    DB.getAttendance(),
+    DB.getCustomSchedules(),
+  ]);
+
+  let students = [...allStudents];
   if (filterStudent) students = students.filter(s => s.id === filterStudent);
 
   const days = getDaysInMonth(currentYear, currentMonth);
@@ -256,7 +270,7 @@ function renderSchedule() {
 
     for (let d = 1; d <= days; d++) {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const cell = Attendance.getCellStatus(s.id, dateStr);
+      const cell = Attendance.getCellStatus(s.id, dateStr, allStudents, allAttendance, customSchedules);
       const isToday = dateStr === today;
       const cls = cell.cls || 'cell-none';
       const tooltip = `${d} ${getMonthName(currentMonth)} — ${cell.label || 'Belum berjalan'}`;
@@ -273,10 +287,14 @@ function renderSchedule() {
   `;
 }
 
-function showDetail(studentId, dateStr) {
-  const s = DB.getStudentById(studentId);
+async function showDetail(studentId, dateStr) {
+  const [s, allAttendance, custom] = await Promise.all([
+    DB.getStudentById(studentId),
+    DB.getAttendance(),
+    DB.getCustomSchedule(studentId, dateStr)
+  ]);
   if (!s) return;
-  const records = DB.getAttendance().filter(a => a.studentId === studentId && a.date === dateStr);
+  const records = allAttendance.filter(a => a.studentId === studentId && a.date === dateStr);
   const panel = document.getElementById('detail-panel');
   const body = document.getElementById('detail-body');
 
@@ -284,7 +302,9 @@ function showDetail(studentId, dateStr) {
 
   let attendanceHtml = '';
   if (records.length === 0) {
-    const cell = Attendance.getCellStatus(studentId, dateStr);
+    const allStudents = await DB.getStudents();
+    const customSchedules = await DB.getCustomSchedules();
+    const cell = Attendance.getCellStatus(studentId, dateStr, allStudents, allAttendance, customSchedules);
     attendanceHtml = `
       <div style="text-align:center;padding:12px;background:var(--bg-card);border:1px dashed var(--border);border-radius:8px;">
         <p style="font-size:13px;font-weight:600;color:var(--text-secondary);">${cell.label || 'Tidak ada riwayat absensi'}</p>
@@ -323,7 +343,6 @@ function showDetail(studentId, dateStr) {
   }
 
   // Shift planner
-  const custom = DB.getCustomSchedule(studentId, dateStr);
   let customStatusText = "Mengikuti Shift Profil & Weekend (Default)";
   if (custom) {
     if (custom.isOff) customStatusText = "Ditetapkan Libur / Off";
@@ -351,38 +370,40 @@ function showDetail(studentId, dateStr) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function setCustomSchedule(studentId, dateStr, shift, isOff) {
+async function setCustomSchedule(studentId, dateStr, shift, isOff) {
   if (shift === null && isOff === false) {
-    DB.saveCustomSchedule(studentId, dateStr, null);
+    await DB.saveCustomSchedule(studentId, dateStr, null);
     showToast('success', 'Rencana Dihapus', 'Jadwal kembali ke pengaturan default.');
   } else {
-    DB.saveCustomSchedule(studentId, dateStr, { shift, isOff });
+    await DB.saveCustomSchedule(studentId, dateStr, { shift, isOff });
     showToast('success', 'Jadwal Diperbarui', 'Rencana berhasil disimpan.');
   }
-  renderSchedule();
-  showDetail(studentId, dateStr);
+  DB._invalidate('schedules');
+  await renderSchedule();
+  await showDetail(studentId, dateStr);
 }
 
 async function deleteAttendanceDate(studentId, dateStr) {
   const confirmDelete = await showCustomConfirm('Hapus Data Absensi', 'Apakah Anda yakin ingin menghapus data absensi/izin untuk tanggal ini?');
   if (!confirmDelete) return;
-  let attendance = DB.getAttendance().filter(a => !(a.studentId === studentId && a.date === dateStr));
-  DB.saveAttendance(attendance);
+  const attendanceList = await DB.getAttendance();
+  let attendance = attendanceList.filter(a => !(a.studentId === studentId && a.date === dateStr));
+  await DB.saveAttendance(attendance);
   showToast('success', 'Data Dihapus', 'Data absensi/izin berhasil dihapus.');
-  renderSchedule();
+  await renderSchedule();
   document.getElementById('detail-panel').style.display = 'none';
 }
 
-function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
-  let attendance = DB.getAttendance();
+async function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
+  let attendance = await DB.getAttendance();
   const rec = attendance.find(a => a.id === recordId);
   if (!rec) return;
 
   rec.time = newTime;
 
   // Rekalkulasi status
-  const student = DB.getStudentById(studentId);
-  const settings = DB.getSettings();
+  const student = await DB.getStudentById(studentId);
+  const settings = await DB.getSettings();
 
   if (rec.type === 'masuk') {
     const shift = rec.shift || student?.shift || 'P';
@@ -416,28 +437,28 @@ function updateAttendanceTime(recordId, newTime, studentId, dateStr) {
     }
   }
 
-  DB.saveAttendance(attendance);
+  await DB.saveAttendance(attendance);
   showToast('success', 'Waktu Diupdate', 'Jam absensi berhasil disesuaikan.');
-  renderSchedule();
-  showDetail(studentId, dateStr);
+  await renderSchedule();
+  await showDetail(studentId, dateStr);
 }
 
 async function markIzinDate(studentId, dateStr, kategori = 'izin') {
   const label = kategori === 'sakit' ? 'Sakit' : 'Izin';
   const ket = await showCustomPrompt(`Tandai ${label}`, `Masukkan keterangan ${label.toLowerCase()} siswa:`, kategori === 'sakit' ? 'Misal: Demam, rawat inap...' : 'Misal: Acara keluarga...');
   if (ket === null) return;
-  let result = Attendance.markIzin(studentId, dateStr, ket, kategori);
+  let result = await Attendance.markIzin(studentId, dateStr, ket, kategori);
   if (result.needConfirm) {
     const ok = await showCustomConfirm('Timpa Record Hadir?', `Siswa sudah punya record masuk/pulang di tanggal ini. Menandai ${label} akan MENGHAPUS record tersebut. Lanjutkan?`);
     if (!ok) return;
-    result = Attendance.markIzin(studentId, dateStr, ket, kategori, true);
+    result = await Attendance.markIzin(studentId, dateStr, ket, kategori, true);
   }
   if (result.error) {
     showToast('error', 'Gagal', result.error);
     return;
   }
   showToast('success', `${label} Tersimpan`, `${label} siswa berhasil dimasukkan`);
-  renderSchedule();
+  await renderSchedule();
   document.getElementById('detail-panel').style.display = 'none';
 }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -210,13 +210,13 @@
 <div class="toast-container" id="toast-container"></div>
 <script src="js/app.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  loadSettings();
-  updateInfo();
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadSettings();
+  await updateInfo();
 });
 
-function loadSettings() {
-  const s = DB.getSettings();
+async function loadSettings() {
+  const s = await DB.getSettings();
   document.getElementById('s-institution').value = s.institution || '';
   document.getElementById('s-tahun-ajaran').value = s.tahun_ajaran || '';
   document.getElementById('s-jam-masuk').value = s.jam_masuk || '08:00';
@@ -226,11 +226,12 @@ function loadSettings() {
   document.getElementById('s-toleransi').value = s.toleransi_menit || 15;
 }
 
-function updateInfo() {
-  document.getElementById('info-students').textContent = DB.getStudents().length;
-  document.getElementById('info-attendance').textContent = DB.getAttendance().length;
-  const size = (JSON.stringify(localStorage).length / 1024).toFixed(1);
-  document.getElementById('info-size').textContent = size + ' KB';
+async function updateInfo() {
+  const [students, attendance] = await Promise.all([DB.getStudents(), DB.getAttendance()]);
+  document.getElementById('info-students').textContent = students.length;
+  document.getElementById('info-attendance').textContent = attendance.length;
+  const sizeKb = ((JSON.stringify(students).length + JSON.stringify(attendance).length) / 1024).toFixed(1);
+  document.getElementById('info-size').textContent = sizeKb + ' KB';
 }
 
 // ===================== HASHING (SHA-256 di browser) =====================
@@ -257,7 +258,7 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
     }
   }
 
-  const existing = DB.getSettings();
+  const existing = await DB.getSettings();
   const settings = {
     ...existing,
     institution: document.getElementById('s-institution').value,
@@ -269,28 +270,24 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
     toleransi_menit: parseInt(document.getElementById('s-toleransi').value) || 15,
   };
 
-  // Hash PIN sebelum disimpan (tidak simpan plaintext)
   if (pinNew) {
     settings.pin_hash = await hashPin(pinNew);
-    settings.pin = pinNew; // simpan juga plaintext untuk kompatibilitas panjang dots
-    delete settings.pin; // hapus plaintext, gunakan pin_hash saja
-    settings.pin_length = pinNew.length; // simpan panjang PIN untuk UI dots
+    settings.pin_length = pinNew.length;
+    delete settings.pin; // hapus plaintext jika ada
   }
 
-  DB.saveSettings(settings);
+  await DB.saveSettings(settings);
+  DB._invalidate('settings');
   document.getElementById('s-pin-new').value = '';
   document.getElementById('s-pin-confirm').value = '';
   showToast('success', 'Tersimpan', 'Pengaturan berhasil diperbarui');
 });
 
-document.getElementById('btn-backup').addEventListener('click', () => {
-  const data = {
-    version: '1.0.0',
-    exportedAt: new Date().toISOString(),
-    settings: DB.getSettings(),
-    students: DB.getStudents(),
-    attendance: DB.getAttendance(),
-  };
+document.getElementById('btn-backup').addEventListener('click', async () => {
+  const [settings, students, attendance] = await Promise.all([
+    DB.getSettings(), DB.getStudents(), DB.getAttendance()
+  ]);
+  const data = { version: '1.0.0', exportedAt: new Date().toISOString(), settings, students, attendance };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -303,16 +300,17 @@ document.getElementById('restore-file').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     try {
       const data = JSON.parse(ev.target.result);
       if (!data.students || !data.attendance) throw new Error('Backup tidak valid');
       if (confirm('Restore akan menimpa data saat ini. Lanjutkan?')) {
-        if (data.settings) DB.saveSettings(data.settings);
-        DB.saveStudents(data.students);
-        DB.saveAttendance(data.attendance);
-        loadSettings();
-        updateInfo();
+        if (data.settings) await DB.saveSettings(data.settings);
+        await DB.saveStudents(data.students);
+        await DB.saveAttendance(data.attendance);
+        DB._cache.students = null; DB._cache.attendance = null; DB._cache.settings = null;
+        await loadSettings();
+        await updateInfo();
         showToast('success', 'Restore Berhasil', 'Data berhasil di-restore');
       }
     } catch(err) {
@@ -322,22 +320,21 @@ document.getElementById('restore-file').addEventListener('change', e => {
   reader.readAsText(file);
 });
 
-document.getElementById('btn-reset-attendance').addEventListener('click', () => {
+document.getElementById('btn-reset-attendance').addEventListener('click', async () => {
   if (confirm('Hapus semua data log absensi?')) {
-    DB.saveAttendance([]);
-    updateInfo();
+    await DB.saveAttendance([]);
+    await updateInfo();
     showToast('success', 'Reset Berhasil', 'Data absensi dikosongkan');
   }
 });
 
-document.getElementById('btn-reset-all').addEventListener('click', () => {
+document.getElementById('btn-reset-all').addEventListener('click', async () => {
   if (confirm('Hapus semua data siswa dan absensi secara permanen?')) {
-    DB.saveStudents([]);
-    DB.saveAttendance([]);
-    updateInfo();
+    await DB.saveStudents([]);
+    await DB.saveAttendance([]);
+    await updateInfo();
     showToast('warning', 'Reset Total', 'Semua data telah dikosongkan');
   }
 });
 </script>
-</body>
 </html>

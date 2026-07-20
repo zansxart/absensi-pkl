@@ -191,8 +191,7 @@
 
 <div class="toast-container" id="toast-container"></div>
 <script src="js/app.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+<script>document.addEventListener('DOMContentLoaded', async () => {
   const monthSel = document.getElementById('f-month');
   for (let m = 1; m <= 12; m++) {
     const opt = document.createElement('option');
@@ -211,23 +210,31 @@ document.addEventListener('DOMContentLoaded', () => {
     yearSel.appendChild(opt);
   }
   const stuSel = document.getElementById('f-student');
-  DB.getStudents().forEach(s => {
+  const students = await DB.getStudents();
+  students.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
     opt.textContent = s.name;
     stuSel.appendChild(opt);
   });
-  renderReport();
+  await renderReport();
 });
 
 document.getElementById('btn-filter').addEventListener('click', renderReport);
 
-function renderReport() {
+async function renderReport() {
   const month = parseInt(document.getElementById('f-month').value);
   const year = parseInt(document.getElementById('f-year').value);
   const studentFilter = document.getElementById('f-student').value;
 
-  let students = DB.getStudents();
+  const [allStudents, allAttendance, customSchedules, settings] = await Promise.all([
+    DB.getStudents(),
+    DB.getAttendance(),
+    DB.getCustomSchedules(),
+    DB.getSettings(),
+  ]);
+
+  let students = [...allStudents];
   if (studentFilter) students = students.filter(s => s.id === studentFilter);
 
   if (students.length === 0) {
@@ -238,7 +245,10 @@ function renderReport() {
     return;
   }
 
-  const allStats = students.map(s => ({ student: s, stats: Attendance.getMonthStats(s.id, year, month) }));
+  const allStats = students.map(s => ({
+    student: s,
+    stats: Attendance.getMonthStats(s.id, year, month, allAttendance, allStudents, settings, customSchedules)
+  }));
   const totalHadir = allStats.reduce((acc, x) => acc + x.stats.hadir, 0);
   const totalTerlambat = allStats.reduce((acc, x) => acc + x.stats.terlambat, 0);
   const totalAlpha = allStats.reduce((acc, x) => acc + x.stats.alpha, 0);
@@ -316,11 +326,11 @@ function renderReport() {
       const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const isWknd = isWeekend(dateStr);
       const dow = new Date(dateStr + 'T00:00:00').getDay();
-      const records = DB.getAttendance().filter(a => a.studentId === s.id && a.date === dateStr);
+      const records = allAttendance.filter(a => a.studentId === s.id && a.date === dateStr);
       const masuk = records.find(r => r.type === 'masuk');
       const pulang = records.find(r => r.type === 'pulang');
       const izin = records.find(r => r.type === 'izin');
-      const effOff = Attendance.getEffectiveDay(s, dateStr).isOff;
+      const effOff = Attendance.getEffectiveDay(s, dateStr, customSchedules).isOff;
 
       if (effOff && !masuk && !izin) {
         rows += `<tr style="opacity:0.4;">
@@ -352,7 +362,7 @@ document.getElementById('btn-export-pdf').addEventListener('click', async () => 
   const { jsPDF } = window.jspdf;
   const month = parseInt(document.getElementById('f-month').value);
   const year = parseInt(document.getElementById('f-year').value);
-  const settings = DB.getSettings();
+  const settings = await DB.getSettings();
 
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const content = document.getElementById('report-content');

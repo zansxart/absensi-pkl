@@ -125,6 +125,16 @@
               <p style="font-size:12px;color:var(--text-muted);">Arahkan QR Code ID Card ke kamera</p>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <!-- MODE SCAN -->
+              <select id="scan-mode-select" style="
+                font-size:12.5px; padding:0 12px; border-radius:8px; 
+                border:1px solid var(--border); background:var(--bg-secondary); 
+                color:var(--text-primary); cursor:pointer; height:32px; 
+                outline:none; font-weight:600; transition:var(--transition);">
+                <option value="absen">Mode: Absensi</option>
+                <option value="test">Mode: Tes Scan</option>
+              </select>
+              
               <!-- DROPDOWN PILIH KAMERA -->
               <select id="camera-select" style="
                 font-size:12.5px; padding:0 12px; border-radius:8px; 
@@ -184,6 +194,22 @@
                 <div class="scan-corner bl"></div>
                 <div class="scan-corner br"></div>
               </div>
+            </div>
+
+            <!-- Scan Success/Error Animation Overlay -->
+            <div id="scan-anim-overlay" style="
+              position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+              background:rgba(0,0,0,0.6); z-index:100; backdrop-filter:blur(3px);">
+              <div id="scan-anim-icon" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <svg id="scan-anim-svg-success" style="width:40px;height:40px;color:white;stroke-width:3;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round;display:none;" viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <svg id="scan-anim-svg-error" style="width:40px;height:40px;color:white;stroke-width:3;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round;display:none;" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </div>
+              <p id="scan-anim-msg" style="color:white;margin-top:16px;font-weight:700;font-size:16px;opacity:0;transition:opacity 0.3s ease-out;text-align:center;padding:0 20px;"></p>
             </div>
           </div>
         </div>
@@ -497,6 +523,41 @@ async function flipCamera() {
   await startCamera(nextCameraIndex);
 }
 
+function playScanAnim(type, message) {
+  const overlay = document.getElementById('scan-anim-overlay');
+  const icon = document.getElementById('scan-anim-icon');
+  const svgSuccess = document.getElementById('scan-anim-svg-success');
+  const svgError = document.getElementById('scan-anim-svg-error');
+  const msgLabel = document.getElementById('scan-anim-msg');
+
+  if(!overlay) return;
+
+  overlay.style.display = 'flex';
+  msgLabel.textContent = message;
+  
+  icon.style.transform = 'scale(0)';
+  msgLabel.style.opacity = '0';
+  svgSuccess.style.display = 'none';
+  svgError.style.display = 'none';
+  
+  if (type === 'success') {
+    icon.style.background = 'var(--success)';
+    svgSuccess.style.display = 'block';
+  } else {
+    icon.style.background = 'var(--danger)';
+    svgError.style.display = 'block';
+  }
+
+  setTimeout(() => {
+    icon.style.transform = 'scale(1)';
+    msgLabel.style.opacity = '1';
+  }, 50);
+
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 1500);
+}
+
 // =================== QR SCAN ===================
 async function onScanSuccess(decodedText) {
   if (scanCooldown) return;
@@ -516,16 +577,69 @@ async function onScanSuccess(decodedText) {
 
   const studentId = extractStudentIdFromQr(qrText);
 
-  const result = Attendance.record(studentId);
-  showScanResult(result);
-  renderScanLog();
+  const modeSelect = document.getElementById('scan-mode-select');
+  const mode = modeSelect ? modeSelect.value : 'absen';
 
-  if (result.error) {
-    setStatusBar('error', 'QR terbaca, tapi ' + result.error);
-    serverLog('scan', `GAGAL: ${result.error}`, 'warn');
+  if (mode === 'test') {
+    const students = await DB.getStudents();
+    const student = students.find(s => s.id === studentId);
+    if (!student) {
+      setStatusBar('error', 'Tes: QR Tidak Dikenal');
+      playScanAnim('error', 'Tidak Dikenal');
+      showScanResult({ error: 'QR Code tidak terdaftar', student: null });
+    } else {
+      setStatusBar('active', `Tes Berhasil: ${student.name}`);
+      playScanAnim('success', student.name);
+      
+      // Mock result object for testing UI
+      const mockResult = {
+        student: student,
+        type: 'tes',
+        statusLabel: 'TES SCAN',
+        error: null
+      };
+      
+      const resCard = document.getElementById('result-card');
+      const resDefault = document.getElementById('result-default');
+      const resSuccess = document.getElementById('result-success');
+      
+      resDefault.style.display = 'none';
+      resSuccess.style.display = 'block';
+      resCard.className = 'result-card success';
+      
+      document.getElementById('res-name').textContent = student.name;
+      document.getElementById('res-nis').textContent = student.nis + ' • ' + student.major;
+      document.getElementById('res-school').textContent = student.school;
+      document.getElementById('res-type').textContent = 'Tes Scan Saja';
+      document.getElementById('res-time').textContent = '—';
+      document.getElementById('res-type-badge').className = 'badge badge-info';
+      document.getElementById('res-type-badge').textContent = 'TES';
+      
+      if (student.photo) {
+        document.getElementById('res-avatar-img').src = student.photo;
+        document.getElementById('res-avatar-img').style.display = '';
+        document.getElementById('res-avatar-fallback').style.display = 'none';
+      } else {
+        document.getElementById('res-avatar-img').style.display = 'none';
+        document.getElementById('res-avatar-fallback').style.display = 'flex';
+        document.getElementById('res-avatar-fallback').textContent = getInitials(student.name);
+      }
+    }
   } else {
-    setStatusBar('active', `${result.student.name} berhasil scan ${result.type}`);
-    serverLog('scan', `${result.student.name} — ${result.type.toUpperCase()} (${result.statusLabel})`, 'success');
+    // Mode Absen (Default)
+    const result = await Attendance.record(studentId);
+    showScanResult(result);
+    await renderScanLog();
+
+    if (result.error) {
+      setStatusBar('error', 'QR terbaca, tapi ' + result.error);
+      serverLog('scan', `GAGAL: ${result.error}`, 'warn');
+      playScanAnim('error', 'Gagal Absen');
+    } else {
+      setStatusBar('active', `${result.student.name} berhasil scan ${result.type}`);
+      serverLog('scan', `${result.student.name} — ${result.type.toUpperCase()} (${result.statusLabel})`, 'success');
+      playScanAnim('success', result.type.toUpperCase());
+    }
   }
 
   setTimeout(() => {
@@ -779,9 +893,14 @@ function showScanResult(result) {
 }
 
 // =================== LOG ===================
-function renderScanLog() {
+async function renderScanLog() {
   const today = getToday();
-  const all = DB.getAttendance().filter(a => a.date === today && a.type !== 'izin');
+  DB._invalidate('attendance');
+  const [allAttendance, allStudents] = await Promise.all([
+    DB.getAttendance(),
+    DB.getStudents(),
+  ]);
+  const all = allAttendance.filter(a => a.date === today && a.type !== 'izin');
   all.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   const container = document.getElementById('scan-log');
@@ -794,7 +913,7 @@ function renderScanLog() {
   }
 
   container.innerHTML = all.map(a => {
-    const s = DB.getStudentById(a.studentId);
+    const s = allStudents.find(st => st.id === a.studentId);
     if (!s) return '';
     const avatarHtml = s.photo
       ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
@@ -817,33 +936,6 @@ function renderScanLog() {
     `;
   }).join('');
 }
-
-// =================== IZIN MANUAL ===================
-function populateIzinStudents() {
-  const sel = document.getElementById('izin-student');
-  DB.getStudents().forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.name;
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById('btn-izin').addEventListener('click', () => {
-  const studentId = document.getElementById('izin-student').value;
-  const ket = document.getElementById('izin-keterangan').value;
-  const kategori = document.getElementById('izin-kategori').value;
-  if (!studentId) { showToast('warning', 'Pilih Siswa', 'Pilih siswa terlebih dahulu'); return; }
-  let result = Attendance.markIzin(studentId, getToday(), ket, kategori);
-  if (result.needConfirm) {
-    if (!confirm('Siswa ini sudah punya record hadir hari ini. Menandai izin/sakit akan MENGHAPUS record masuk/pulangnya. Lanjutkan?')) return;
-    result = Attendance.markIzin(studentId, getToday(), ket, kategori, true);
-  }
-  if (result.error) { showToast('error', 'Gagal', result.error); return; }
-  showToast('success', kategori === 'sakit' ? 'Sakit Tersimpan' : 'Izin Tersimpan', `${DB.getStudentById(studentId)?.name} — ${kategori === 'sakit' ? 'Sakit' : 'Izin'} hari ini`);
-  document.getElementById('izin-keterangan').value = '';
-  renderScanLog();
-});
 
 // =================== STATUS BAR ===================
 function setStatusBar(type, msg) {

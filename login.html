@@ -217,6 +217,7 @@ const PIN_LENGTH = 4; // panjang PIN default
 let pinEntry = '';
 let attempts = 0;
 let locked = false;
+let appConfig = { institution: '', pin_length: PIN_LENGTH };
 
 // ===================== HASHING (SHA-256 di browser) =====================
 async function hashPin(pin) {
@@ -229,19 +230,16 @@ async function hashPin(pin) {
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ambil config dari server (.env)
+  // Ambil config dari server
   try {
     const res = await fetch('/api/config');
     if (res.ok) {
-      const cfg = await res.json();
-      const settings = DB.getSettings();
-      const instName = settings.institution || cfg.institution || '';
-      document.getElementById('inst-name').textContent = instName;
+      appConfig = await res.json();
+      document.getElementById('inst-name').textContent = appConfig.institution || 'Sistem Absensi PKL';
     }
   } catch (e) {
     console.warn('Gagal load config dari server:', e);
-    const settings = DB.getSettings();
-    document.getElementById('inst-name').textContent = settings.institution || '';
+    document.getElementById('inst-name').textContent = 'Sistem Absensi PKL';
   }
 
   // Jika sudah login, langsung redirect
@@ -282,13 +280,11 @@ function isLoggedIn() {
 }
 
 // ===================== PIN INPUT =====================
-function getMaxPinLen() {
-  const s = DB.getSettings();
-  // Ambil panjang PIN: dari pin_length (hash mode), atau panjang pin string, atau default 4
-  return s.pin_length || (s.pin && s.pin.length) || PIN_LENGTH;
+async function getMaxPinLen() {
+  return appConfig.pin_length || PIN_LENGTH;
 }
 
-function addDigit(d) {
+async function addDigit(d) {
   if (locked) return;
   const maxLen = 6; // max PIN length adalah 6 digit
   if (pinEntry.length >= maxLen) return;
@@ -297,7 +293,7 @@ function addDigit(d) {
   updateDots();
 
   // Auto-submit saat mencapai panjang PIN yang disimpan, atau minimal 4
-  const targetLen = getMaxPinLen();
+  const targetLen = await getMaxPinLen();
   if (pinEntry.length >= targetLen) {
     setTimeout(checkPin, 100);
   }
@@ -320,18 +316,6 @@ function updateDots() {
 }
 
 async function checkPin() {
-  const s = DB.getSettings();
-
-  // Prioritas 1: Cek PIN custom dari settings (sudah di-hash dan disimpan lokal)
-  if (s.pin_hash) {
-    const inputHash = await hashPin(pinEntry);
-    if (inputHash === s.pin_hash) {
-      loginSuccess();
-      return;
-    }
-  }
-
-  // Prioritas 2: Verifikasi PIN default via server
   try {
     const res = await fetch('/api/verify-pin', {
       method: 'POST',
@@ -346,8 +330,6 @@ async function checkPin() {
     }
   } catch (e) {
     console.warn('Gagal verifikasi ke server:', e);
-    // Server tidak bisa dihubungi & tidak ada PIN custom lokal → tolak login.
-    // (Fallback hash offline dihapus: hash PIN pendek bisa di-brute-force dari client.)
   }
 
   // PIN salah
@@ -395,15 +377,18 @@ function loginFailed() {
   }, 900);
 }
 
-function autoBackup() {
+async function autoBackup() {
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const [settings, students, attendance] = await Promise.all([
+      DB.getSettings(),
+      DB.getStudents(),
+      DB.getAttendance(),
+    ]);
     const data = {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
-      settings: DB.getSettings(),
-      students: DB.getStudents(),
-      attendance: DB.getAttendance(),
+      settings, students, attendance,
     };
     fetch('/api/backup', {
       method: 'POST',

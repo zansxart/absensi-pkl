@@ -82,6 +82,36 @@ function ensureBackupDir() {
   }
 }
 
+// ===================== DATA STORE (JSON files) =====================
+const DATA_DIR = path.join(__dirname, 'data');
+const DATA_FILES = {
+  students: path.join(DATA_DIR, 'students.json'),
+  attendance: path.join(DATA_DIR, 'attendance.json'),
+  schedules: path.join(DATA_DIR, 'schedules.json'),
+  settings: path.join(DATA_DIR, 'settings.json'),
+};
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(DATA_FILES.students)) fs.writeFileSync(DATA_FILES.students, '[]', 'utf-8');
+  if (!fs.existsSync(DATA_FILES.attendance)) fs.writeFileSync(DATA_FILES.attendance, '[]', 'utf-8');
+  if (!fs.existsSync(DATA_FILES.schedules)) fs.writeFileSync(DATA_FILES.schedules, '{}', 'utf-8');
+  if (!fs.existsSync(DATA_FILES.settings)) fs.writeFileSync(DATA_FILES.settings, '{}', 'utf-8');
+}
+ensureDataDir();
+
+function readData(key) {
+  try {
+    return JSON.parse(fs.readFileSync(DATA_FILES[key], 'utf-8'));
+  } catch (e) {
+    return key === 'schedules' || key === 'settings' ? {} : [];
+  }
+}
+
+function writeData(key, data) {
+  fs.writeFileSync(DATA_FILES[key], JSON.stringify(data, null, 2), 'utf-8');
+}
+
 // ===================== HELPERS =====================
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -102,10 +132,10 @@ function jsonResponse(res, status, data) {
 
 // ===================== MIME TYPES =====================
 const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'text/javascript',
-  '.json': 'application/json',
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpg',
   '.gif': 'image/gif',
@@ -126,12 +156,151 @@ function logEvent(tag, message, type = 'info') {
 
 // ===================== SERVER =====================
 const server = http.createServer(async (req, res) => {
+  // CORS headers untuk akses LAN
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
   // ---------- API: Config (tanpa PIN & tanpa hash) ----------
   if (req.url === '/api/config' && req.method === 'GET') {
     logEvent('api', 'Config loaded by client');
+    const settings = readData('settings') || {};
     jsonResponse(res, 200, {
-      institution: envConfig.INSTITUTION,
+      institution: settings.institution || envConfig.INSTITUTION || 'Sistem Absensi PKL',
+      pin_length: settings.pin_length || 4
     });
+    return;
+  }
+
+  // ---------- API: DATA ENDPOINTS ----------
+  // GET /api/students
+  if (req.url === '/api/students' && req.method === 'GET') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    jsonResponse(res, 200, readData('students'));
+    return;
+  }
+  // POST /api/students (replace all)
+  if (req.url === '/api/students' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const data = await readBody(req);
+      if (!Array.isArray(data)) { jsonResponse(res, 400, { error: 'Data harus array' }); return; }
+      writeData('students', data);
+      logEvent('data', `Students saved (${data.length} records)`, 'success');
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // GET /api/attendance
+  if (req.url === '/api/attendance' && req.method === 'GET') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    jsonResponse(res, 200, readData('attendance'));
+    return;
+  }
+  // POST /api/attendance (replace all)
+  if (req.url === '/api/attendance' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const data = await readBody(req);
+      if (!Array.isArray(data)) { jsonResponse(res, 400, { error: 'Data harus array' }); return; }
+      writeData('attendance', data);
+      logEvent('data', `Attendance saved (${data.length} records)`, 'success');
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // POST /api/attendance/append (tambah satu record, cegah duplikat)
+  if (req.url === '/api/attendance/append' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const record = await readBody(req);
+      const all = readData('attendance');
+      if (record.type !== 'izin') {
+        const dup = all.find(a => a.studentId === record.studentId && a.date === record.date && a.type === record.type);
+        if (dup) { jsonResponse(res, 409, { error: 'Record sudah ada (scan ganda)' }); return; }
+      } else {
+        // Izin: hapus record hari itu dulu
+        const filtered = all.filter(a => !(a.studentId === record.studentId && a.date === record.date));
+        filtered.push(record);
+        writeData('attendance', filtered);
+        logEvent('data', `Izin/sakit: ${record.studentId} ${record.date}`, 'info');
+        jsonResponse(res, 200, { ok: true }); return;
+      }
+      all.push(record);
+      writeData('attendance', all);
+      logEvent('data', `Attendance append: ${record.studentId} ${record.type} ${record.date}`, 'success');
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // GET /api/schedules
+  if (req.url === '/api/schedules' && req.method === 'GET') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    jsonResponse(res, 200, readData('schedules'));
+    return;
+  }
+  // POST /api/schedules
+  if (req.url === '/api/schedules' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const data = await readBody(req);
+      writeData('schedules', data);
+      logEvent('data', 'Schedules saved', 'success');
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // GET /api/settings
+  if (req.url === '/api/settings' && req.method === 'GET') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    jsonResponse(res, 200, readData('settings'));
+    return;
+  }
+  // POST /api/settings
+  if (req.url === '/api/settings' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const data = await readBody(req);
+      writeData('settings', data);
+      logEvent('data', 'Settings saved', 'success');
+      jsonResponse(res, 200, { ok: true });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // POST /api/import — import data dari localStorage PC lain (one-shot, butuh token)
+  if (req.url === '/api/import' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const body = await readBody(req);
+      if (body.students && Array.isArray(body.students)) {
+        const existing = readData('students');
+        const merged = [...existing];
+        body.students.forEach(s => { if (!merged.find(e => e.id === s.id)) merged.push(s); });
+        writeData('students', merged);
+        logEvent('import', `Imported ${body.students.length} students (total: ${merged.length})`, 'success');
+      }
+      if (body.attendance && Array.isArray(body.attendance)) {
+        const existing = readData('attendance');
+        const merged = [...existing];
+        body.attendance.forEach(a => { if (!merged.find(e => e.id === a.id)) merged.push(a); });
+        writeData('attendance', merged);
+        logEvent('import', `Imported ${body.attendance.length} attendance records (total: ${merged.length})`, 'success');
+      }
+      if (body.schedules && typeof body.schedules === 'object') {
+        const existing = readData('schedules');
+        writeData('schedules', { ...body.schedules, ...existing });
+        logEvent('import', 'Schedules merged', 'success');
+      }
+      if (body.settings && typeof body.settings === 'object') {
+        const existing = readData('settings');
+        if (Object.keys(existing).length === 0) {
+          writeData('settings', body.settings);
+          logEvent('import', 'Settings imported', 'success');
+        }
+      }
+      jsonResponse(res, 200, { ok: true, message: 'Import berhasil' });
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
     return;
   }
 
@@ -163,9 +332,21 @@ const server = http.createServer(async (req, res) => {
         jsonResponse(res, 400, { success: false, message: 'PIN diperlukan' });
         return;
       }
-      const inputHash = Buffer.from(hashPin(pin));
-      const serverHash = Buffer.from(hashPin(envConfig.DEFAULT_PIN));
-      if (inputHash.length === serverHash.length && crypto.timingSafeEqual(inputHash, serverHash)) {
+
+      const settings = readData('settings') || {};
+      const inputHashStr = hashPin(pin);
+
+      let match = false;
+      if (settings.pin_hash) {
+        match = (inputHashStr === settings.pin_hash);
+      } else {
+
+        const defaultPin = envConfig.DEFAULT_PIN || '1234';
+        const defaultHashStr = hashPin(defaultPin);
+        match = (inputHashStr === defaultHashStr);
+      }
+
+      if (match) {
         const token = issueToken();
         logEvent('auth', `PIN verified successfully (IP: ${ip})`, 'success');
         jsonResponse(res, 200, { success: true, token });
@@ -299,7 +480,12 @@ const server = http.createServer(async (req, res) => {
       if (extname === '.html') {
         logEvent('page', `Served ${urlPath}`, 'success');
       }
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.end(content, 'utf-8');
     }
   });

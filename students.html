@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Peserta PKL – Sistem Absensi</title>
+  <title>Peserta PKL &ndash; Sistem Absensi</title>
   <meta name="description" content="Manajemen peserta PKL" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -127,7 +127,7 @@
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-title">Tambah Peserta PKL</h3>
-      <button class="btn-close" id="modal-close">✕</button>
+      <button class="btn-close" id="modal-close">&#10006;</button>
     </div>
     <div class="modal-body">
 
@@ -174,7 +174,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Nilai Sikap (manual, 0–100) — untuk penilaian akhir</label>
+        <label class="form-label">Nilai Sikap (manual, 0&ndash;100) &mdash; untuk penilaian akhir</label>
         <input type="number" class="form-control" id="f-sikap" placeholder="80" min="0" max="100" value="80" />
       </div>
     </div>
@@ -190,7 +190,7 @@
   <div class="modal" style="max-width:360px;">
     <div class="modal-header">
       <h3>QR Code ID Card</h3>
-      <button class="btn-close" id="modal-qr-close">✕</button>
+      <button class="btn-close" id="modal-qr-close">&#10006;</button>
     </div>
     <div class="modal-body" style="text-align:center;">
       <div id="qr-card-wrap" style="display:inline-block;">
@@ -217,7 +217,7 @@
   <div class="modal" style="max-width:360px;">
     <div class="modal-header">
       <h3>Hapus Siswa</h3>
-      <button class="btn-close" id="modal-delete-close">✕</button>
+      <button class="btn-close" id="modal-delete-close">&#10006;</button>
     </div>
     <div class="modal-body" style="text-align:center;padding:24px 20px;">
       <p style="font-size:14px;margin-bottom:8px;">Hapus <strong id="delete-name">-</strong>?</p>
@@ -235,7 +235,7 @@
   <div class="modal" style="max-width: 400px;">
     <div class="modal-header">
       <h3>Potong Foto Profil</h3>
-      <button class="btn-close" id="modal-crop-close">✕</button>
+      <button class="btn-close" id="modal-crop-close">&#10006;</button>
     </div>
     <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
       <div style="width: 100%; height: 300px; background: #000; overflow: hidden; border-radius: 8px; position: relative;">
@@ -260,26 +260,34 @@ let photoBase64 = '';
 let currentQrStudentId = null;
 let cropperInstance = null;
 
-function renderStudents() {
+async function renderStudents() {
   const q = document.getElementById('search-input').value.toLowerCase();
-  let students = DB.getStudents().filter(s => {
-    return (s.name + s.nis + s.school + s.major).toLowerCase().includes(q);
-  });
+  // Invalidate cache agar selalu fresh saat render manual
+  DB._invalidate('students');
+  DB._invalidate('attendance');
+  const [students, allAttendance, customSchedules, settings] = await Promise.all([
+    DB.getStudents(),
+    DB.getAttendance(),
+    DB.getCustomSchedules(),
+    DB.getSettings(),
+  ]);
+  const filtered = students.filter(s => (s.name + s.nis + s.school + s.major).toLowerCase().includes(q));
 
-  document.getElementById('student-count').textContent = `${students.length} siswa`;
+  document.getElementById('student-count').textContent = `${filtered.length} siswa`;
 
   const grid = document.getElementById('students-grid');
-  if (students.length === 0) {
+  if (filtered.length === 0) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Tidak ada siswa ditemukan</p></div>`;
     return;
   }
 
-  grid.innerHTML = students.map(s => {
-    const today = getToday();
-    const now = new Date();
-    const year = now.getFullYear(); const month = now.getMonth() + 1;
-    const stats = Attendance.getMonthStats(s.id, year, month);
-    const cell = Attendance.getCellStatus(s.id, today);
+  const today = getToday();
+  const now = new Date();
+  const year = now.getFullYear(); const month = now.getMonth() + 1;
+
+  grid.innerHTML = filtered.map(s => {
+    const stats = Attendance.getMonthStats(s.id, year, month, allAttendance, students, settings, customSchedules);
+    const cell = Attendance.getCellStatus(s.id, today, students, allAttendance, customSchedules);
 
     const avatarHtml = s.photo
       ? `<img src="${s.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />`
@@ -291,7 +299,7 @@ function renderStudents() {
       ? `<span class="badge badge-warning">Terlambat</span>`
       : cell.cls.includes('alpha') ? `<span class="badge badge-danger">Alpha</span>`
       : cell.cls.includes('izin') ? `<span class="badge badge-info">Izin</span>`
-      : `<span class="badge badge-neutral">—</span>`;
+      : `<span class="badge badge-neutral">&mdash;</span>`;
 
     return `
       <div class="card" style="padding:16px;">
@@ -299,7 +307,7 @@ function renderStudents() {
           ${avatarHtml}
           <div style="flex:1;min-width:0;">
             <div style="font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
-            <div style="font-size:11.5px;color:var(--text-muted);">${s.nis} • ${s.major}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${s.nis} &bull; ${s.major}</div>
             <div style="font-size:11.5px;color:var(--text-secondary);margin-top:1px;">${s.school}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
@@ -329,6 +337,7 @@ function renderStudents() {
         <div style="display:flex;gap:6px;">
           <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openQR('${s.id}')">QR Code</button>
           <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openEdit('${s.id}')">Edit</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openDuplicate('${s.id}')" title="Duplikat data instansi/periode">Duplikat</button>
           <button class="btn btn-danger btn-sm" onclick="openDelete('${s.id}')">
             <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
@@ -343,13 +352,13 @@ document.getElementById('btn-add').addEventListener('click', () => openModal(nul
 document.getElementById('modal-close').addEventListener('click', closeModal);
 document.getElementById('modal-cancel').addEventListener('click', closeModal);
 
-function openModal(id) {
+async function openModal(id) {
   editId = id;
   photoBase64 = '';
   resetForm();
 
   if (id) {
-    const s = DB.getStudentById(id);
+    const s = await DB.getStudentById(id);
     if (!s) return;
     document.getElementById('modal-title').textContent = 'Edit Peserta PKL';
     document.getElementById('f-name').value = s.name;
@@ -459,7 +468,7 @@ document.getElementById('btn-crop-confirm').addEventListener('click', () => {
     });
     
     if (canvas) {
-      // Hasil potongan: 250x250px kualitas JPEG 85% (Hemat space localStorage!)
+      // Hasil potongan: 250x250px kualitas JPEG 85%
       photoBase64 = canvas.toDataURL('image/jpeg', 0.85);
       document.getElementById('photo-img').src = photoBase64;
       document.getElementById('photo-img').style.display = '';
@@ -469,7 +478,6 @@ document.getElementById('btn-crop-confirm').addEventListener('click', () => {
     }
   } catch (err) {
     console.error("Error cropping:", err);
-    // Fallback pakai file asli yang sudah ditaruh di src crop-image
     photoBase64 = document.getElementById('crop-image').src;
     document.getElementById('photo-img').src = photoBase64;
     document.getElementById('photo-img').style.display = '';
@@ -480,7 +488,7 @@ document.getElementById('btn-crop-confirm').addEventListener('click', () => {
   closeCropModal();
 });
 
-document.getElementById('btn-save').addEventListener('click', () => {
+document.getElementById('btn-save').addEventListener('click', async () => {
   const name = document.getElementById('f-name').value.trim();
   const nis  = document.getElementById('f-nis').value.trim();
   const school = document.getElementById('f-school').value.trim();
@@ -489,7 +497,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
     return;
   }
 
-  let students = DB.getStudents();
+  let students = await DB.getStudents();
   if (editId) {
     students = students.map(s => s.id === editId ? {
       ...s, name, nis, school,
@@ -515,7 +523,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
     });
     showToast('success', 'Berhasil', 'Siswa ditambahkan');
   }
-  DB.saveStudents(students);
+  await DB.saveStudents(students);
   closeModal();
   renderStudents();
 });
@@ -524,9 +532,27 @@ function openEdit(id) {
   openModal(id);
 }
 
-function openDelete(id) {
+async function openDuplicate(id) {
+  editId = null;
+  photoBase64 = '';
+  resetForm();
+
+  const s = await DB.getStudentById(id);
+  if (!s) return;
+
+  document.getElementById('modal-title').textContent = 'Duplikat Peserta PKL';
+  document.getElementById('f-school').value = s.school;
+  document.getElementById('f-major').value = s.major || '';
+  document.getElementById('f-start').value = s.startDate || '';
+  document.getElementById('f-end').value = s.endDate || '';
+  document.getElementById('f-sikap').value = s.nilaiSikap || 80;
+
+  document.getElementById('modal-student').classList.add('active');
+}
+
+async function openDelete(id) {
   deleteId = id;
-  const s = DB.getStudentById(id);
+  const s = await DB.getStudentById(id);
   document.getElementById('delete-name').textContent = s ? s.name : '';
   document.getElementById('modal-delete').classList.add('active');
 }
@@ -534,20 +560,22 @@ function openDelete(id) {
 document.getElementById('modal-delete-close').addEventListener('click', () => document.getElementById('modal-delete').classList.remove('active'));
 document.getElementById('modal-delete-cancel').addEventListener('click', () => document.getElementById('modal-delete').classList.remove('active'));
 
-document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
   if (!deleteId) return;
-  let students = DB.getStudents().filter(s => s.id !== deleteId);
-  let attendance = DB.getAttendance().filter(a => a.studentId !== deleteId);
-  DB.saveStudents(students);
-  DB.saveAttendance(attendance);
+  let students = await DB.getStudents();
+  let attendance = await DB.getAttendance();
+  students = students.filter(s => s.id !== deleteId);
+  attendance = attendance.filter(a => a.studentId !== deleteId);
+  await DB.saveStudents(students);
+  await DB.saveAttendance(attendance);
   showToast('success', 'Dihapus', 'Data siswa berhasil dihapus');
   document.getElementById('modal-delete').classList.remove('active');
   renderStudents();
 });
 
-function openQR(id) {
+async function openQR(id) {
   currentQrStudentId = id;
-  const s = DB.getStudentById(id);
+  const s = await DB.getStudentById(id);
   if (!s) return;
   document.getElementById('qr-card-name').textContent = s.name;
   document.getElementById('qr-card-nis').textContent = `NIS: ${s.nis}`;
@@ -577,12 +605,10 @@ document.getElementById('btn-print-qr').addEventListener('click', () => {
   win.document.close();
 });
 
-document.getElementById('btn-download-qr').addEventListener('click', () => {
-  const s = DB.getStudentById(currentQrStudentId);
+document.getElementById('btn-download-qr').addEventListener('click', async () => {
+  const s = await DB.getStudentById(currentQrStudentId);
   if (!s) return;
 
-  // Render ulang QR ukuran besar, lalu beri quiet zone (bingkai putih).
-  // Tanpa quiet zone, QR gagal discan saat ditampilkan di background gelap (mis. layar HP dark mode).
   const tmp = document.createElement('div');
   new QRCode(tmp, { text: `PKL_${s.id}`, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff' });
   const qrCanvas = tmp.querySelector('canvas');

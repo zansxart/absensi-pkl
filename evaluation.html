@@ -190,21 +190,33 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-document.getElementById('btn-hitung').addEventListener('click', renderEval);
+document.getElementById('btn-hitung').addEventListener('click', async () => {
+  await renderEval();
+});
 
-function renderEval() {
+async function renderEval() {
   const month = parseInt(document.getElementById('f-period-month').value);
   const year = parseInt(document.getElementById('f-period-year').value);
-  const students = DB.getStudents();
+  
+  // Refresh cache
+  DB._invalidate('students');
+  DB._invalidate('attendance');
+  DB._invalidate('schedules');
+  const [allStudents, allAttendance, customSchedules, settings] = await Promise.all([
+    DB.getStudents(),
+    DB.getAttendance(),
+    DB.getCustomSchedules(),
+    DB.getSettings(),
+  ]);
 
-  if (students.length === 0) {
+  if (allStudents.length === 0) {
     showToast('warning', 'Tidak Ada Siswa', 'Tambahkan siswa terlebih dahulu');
     return;
   }
 
-  const results = students.map(s => ({
+  const results = allStudents.map(s => ({
     student: s,
-    eval: Evaluation.calculate(s.id, year, month),
+    eval: Evaluation.calculate(s.id, year, month, allAttendance, allStudents, settings, customSchedules),
   })).filter(r => r.eval !== null);
 
   const grid = document.getElementById('eval-grid');

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -218,18 +218,22 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="js/app.js"></script>
-<script>
   document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
   });
 
-  function renderDashboard() {
-    const students = DB.getStudents();
+  async function renderDashboard() {
+    const [students, allAttendance, customSchedules, settings] = await Promise.all([
+      DB.getStudents(),
+      DB.getAttendance(),
+      DB.getCustomSchedules(),
+      DB.getSettings(),
+    ]);
     const today = getToday();
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    const todayAttendance = DB.getTodayAttendance();
+    const todayAttendance = allAttendance.filter(a => a.date === today);
 
     let hadir = 0, terlambat = 0;
     const hadirIds = new Set();
@@ -264,7 +268,7 @@
         grouped[a.studentId][a.type] = a;
       });
       const html = Object.entries(grouped).map(([sid, rec]) => {
-        const s = DB.getStudentById(sid);
+        const s = students.find(st => st.id === sid);
         if (!s) return '';
         const masukTime = rec.masuk ? rec.masuk.time : '-';
         const pulangTime = rec.pulang ? rec.pulang.time : '-';
@@ -299,7 +303,7 @@
       monthlyBars.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><p>Belum ada data</p></div>`;
     } else {
       monthlyBars.innerHTML = students.map(s => {
-        const stats = Attendance.getMonthStats(s.id, year, month);
+        const stats = Attendance.getMonthStats(s.id, year, month, allAttendance, students, settings, customSchedules);
         const pct = stats.pct;
         const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
         const avatarHtml = s.photo
@@ -330,7 +334,7 @@
       tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada siswa terdaftar</td></tr>`;
     } else {
       tbody.innerHTML = students.map(s => {
-        const stats = Attendance.getMonthStats(s.id, year, month);
+        const stats = Attendance.getMonthStats(s.id, year, month, allAttendance, students, settings, customSchedules);
         const avatarHtml = s.photo
           ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
           : `<div class="student-avatar">${getInitials(s.name)}</div>`;
@@ -367,5 +371,6 @@
     }
   }
 </script>
+
 </body>
 </html>
