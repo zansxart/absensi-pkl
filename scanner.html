@@ -365,7 +365,16 @@ async function initCameraOptions() {
     const devices = await Html5Qrcode.getCameras();
     if (devices && devices.length > 0) {
       cameras = devices;
+      
+      // Prioritaskan DroidCam, kalau tidak ada cari kamera belakang
+      let bestIndex = devices.findIndex(d => /droidcam/i.test(d.label));
+      if (bestIndex < 0) bestIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
+      if (bestIndex >= 0) currentCameraIndex = bestIndex;
+
       updateCameraSelectUI();
+      
+      // Auto start kamera
+      setTimeout(() => startCamera(currentCameraIndex), 500);
     }
   } catch (e) {
     // Silent fail, user perlu klik Mulai Kamera untuk trigger request izin
@@ -462,12 +471,13 @@ async function startCamera(preferredCameraIndex = null) {
     if (Number.isInteger(preferredCameraIndex)) {
       currentCameraIndex = Math.max(0, Math.min(preferredCameraIndex, cameras.length - 1));
     } else {
-      // Jika belum dipilih, coba default ke kamera belakang, atau kamera pertama
+      // Jika belum dipilih, coba default ke DroidCam, lalu kamera belakang, atau kamera pertama
       const selectedDropdown = document.getElementById('camera-select').value;
       if (selectedDropdown !== "") {
         currentCameraIndex = parseInt(selectedDropdown);
       } else {
-        currentCameraIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
+        currentCameraIndex = devices.findIndex(d => /droidcam/i.test(d.label));
+        if (currentCameraIndex < 0) currentCameraIndex = devices.findIndex(d => /back|rear|environment/i.test(d.label));
         if (currentCameraIndex < 0) currentCameraIndex = 0;
       }
     }

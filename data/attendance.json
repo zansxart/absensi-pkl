@@ -1,0 +1,24 @@
+[
+  {
+    "id": "mrt2va8rfs9we",
+    "studentId": "mrsxzaqp9qu7z",
+    "date": "2026-07-20",
+    "type": "masuk",
+    "timestamp": "2026-07-20T10:24:31.131Z",
+    "time": "17:24",
+    "status": "warning",
+    "statusLabel": "Terlambat 564 menit",
+    "shift": "P"
+  },
+  {
+    "id": "mruavlzes8w97",
+    "studentId": "mrsyeqlmaojs5",
+    "date": "2026-07-21",
+    "type": "masuk",
+    "timestamp": "2026-07-21T06:56:29.450Z",
+    "time": "13:56",
+    "status": "warning",
+    "statusLabel": "Terlambat 56 menit",
+    "shift": "S"
+  }
+]
