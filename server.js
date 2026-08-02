@@ -254,20 +254,70 @@ const requestHandler = async (req, res) => {
       const record = await readBody(req);
       const all = readData('attendance');
       if (record.type !== 'izin') {
-        const dup = all.find(a => a.studentId === record.studentId && a.date === record.date && a.type === record.type);
+        // Jika sebelumnya ada izin, hapus record izin hari tersebut
+        const filtered = all.filter(a => !(a.studentId === record.studentId && a.date === record.date && a.type === 'izin'));
+        const dup = filtered.find(a => a.studentId === record.studentId && a.date === record.date && a.type === record.type);
         if (dup) { jsonResponse(res, 409, { error: 'Record sudah ada (scan ganda)' }); return; }
+        filtered.push(record);
+        writeData('attendance', filtered);
+        logEvent('data', `Attendance append: ${record.studentId} ${record.type} ${record.date}`, 'success');
+        jsonResponse(res, 200, { ok: true });
+        return;
       } else {
         // Izin: hapus record hari itu dulu
         const filtered = all.filter(a => !(a.studentId === record.studentId && a.date === record.date));
         filtered.push(record);
         writeData('attendance', filtered);
         logEvent('data', `Izin/sakit: ${record.studentId} ${record.date}`, 'info');
-        jsonResponse(res, 200, { ok: true }); return;
+        jsonResponse(res, 200, { ok: true });
+        return;
       }
-      all.push(record);
+    } catch (e) { jsonResponse(res, 400, { error: e.message }); }
+    return;
+  }
+  // POST /api/attendance/update (edit/update jam atau status absensi manual)
+  if (req.url === '/api/attendance/update' && req.method === 'POST') {
+    if (!isValidToken(req)) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    try {
+      const payload = await readBody(req);
+      const { studentId, date, type, time, status, statusLabel, shift } = payload;
+      if (!studentId || !date || !type || !time) {
+        jsonResponse(res, 400, { error: 'Parameter studentId, date, type, dan time wajib diisi' });
+        return;
+      }
+      let all = readData('attendance');
+      // Jika update/tambah jam masuk or pulang, hapus record izin hari itu jika ada
+      if (type === 'masuk' || type === 'pulang') {
+        all = all.filter(a => !(a.studentId === studentId && a.date === date && a.type === 'izin'));
+      }
+      let idx = all.findIndex(a => a.studentId === studentId && a.date === date && a.type === type);
+      let record;
+      if (idx >= 0) {
+        all[idx].time = time;
+        if (status) all[idx].status = status;
+        if (statusLabel) all[idx].statusLabel = statusLabel;
+        if (shift) all[idx].shift = shift;
+        all[idx].manualEdit = true;
+        all[idx].updatedAt = new Date().toISOString();
+        record = all[idx];
+      } else {
+        record = {
+          id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          studentId,
+          date,
+          type,
+          timestamp: new Date().toISOString(),
+          time,
+          status: status || 'info',
+          statusLabel: statusLabel || (type === 'masuk' ? 'Tepat Waktu' : 'Pulang'),
+          shift: shift || 'P',
+          manualEdit: true
+        };
+        all.push(record);
+      }
       writeData('attendance', all);
-      logEvent('data', `Attendance append: ${record.studentId} ${record.type} ${record.date}`, 'success');
-      jsonResponse(res, 200, { ok: true });
+      logEvent('data', `Attendance update manual: ${studentId} ${type} ${date} -> ${time}`, 'success');
+      jsonResponse(res, 200, { ok: true, record });
     } catch (e) { jsonResponse(res, 400, { error: e.message }); }
     return;
   }

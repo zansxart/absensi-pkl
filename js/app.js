@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS = {
   institution: '',
   jam_masuk: '08:00',
   jam_pulang: '16:00',
-  jam_masuk_siang: '13:00',
+  jam_masuk_siang: '14:00',
   jam_pulang_siang: '21:00',
   toleransi_menit: 15,
   tahun_ajaran: '2025/2026',
@@ -83,6 +83,13 @@ const DB = {
     // Invalidate agar next call ambil fresh dari server
     this._invalidate('attendance');
     return { success: true };
+  },
+
+  async updateAttendance(payload) {
+    const res = await apiCall('POST', '/api/attendance/update', payload);
+    if (res.error) return { error: res.error };
+    this._invalidate('attendance');
+    return { success: true, record: res.record };
   },
 
   async getSettings() {
@@ -281,11 +288,13 @@ const Attendance = {
     const hasIzin = todayRecords.find(r => r.type === 'izin');
 
     if (hasIzin) {
-      const lbl = hasIzin.kategori === 'sakit' ? 'Sakit' : 'Izin';
-      return { error: `${student.name} sudah tercatat ${lbl} hari ini` };
+      // Jika siswa tercatat Izin/Sakit sebelumnya lalu melakukan scan, batalkan Izin-nya dan catat masuk
+      const cleanAttendance = allAttendance.filter(a => !(a.studentId === studentId && a.date === today && a.type === 'izin'));
+      await DB.saveAttendance(cleanAttendance);
     }
 
-    const activeShift = hasMasuk ? (hasMasuk.shift || eff.shift) : eff.shift;
+    // Custom schedule shift selalu menang atas shift yang tersimpan di record masuk
+    const activeShift = eff.shift;
     const isSiang = activeShift === 'S';
     const jamMasuk = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
     const jamMasukMins = timeToMinutes(jamMasuk);
@@ -301,6 +310,22 @@ const Attendance = {
         statusLabel = `Terlambat ${terlambat} menit`; statusClass = 'warning';
       }
     } else if (!hasPulang) {
+      // Jika shift berubah sejak scan masuk, update record masuk ke shift terbaru
+      if (hasMasuk.shift !== activeShift) {
+        const masukMins = timeToMinutes(hasMasuk.time);
+        let newMasukStatus, newMasukLabel;
+        if (masukMins <= jamMasukMins + toleransiMins) {
+          newMasukStatus = 'success'; newMasukLabel = 'Tepat Waktu';
+        } else {
+          const t = masukMins - jamMasukMins;
+          newMasukStatus = 'warning'; newMasukLabel = `Terlambat ${t} menit`;
+        }
+        await DB.updateAttendance({
+          studentId, date: today, type: 'masuk', time: hasMasuk.time,
+          status: newMasukStatus, statusLabel: newMasukLabel, shift: activeShift,
+        });
+      }
+
       const masukTimeMins = timeToMinutes(hasMasuk.time);
       if (nowMins >= masukTimeMins + 120) {
         type = 'pulang';
@@ -364,7 +389,7 @@ const Attendance = {
         hadir++;
         if (masuk.status === 'warning') terlambat++;
 
-        const shift = masuk.shift || eff.shift;
+        const shift = (eff.custom && eff.custom.shift) ? eff.custom.shift : (masuk.shift || eff.shift);
         const jamMasukS = ((settings || {}).jam_masuk_siang || '13:00');
         const jamMasukP = ((settings || {}).jam_masuk || '08:00');
         const jamMasukStr = shift === 'S' ? jamMasukS : jamMasukP;
@@ -415,6 +440,78 @@ const Attendance = {
   },
 
   /**
+   * Edit atau input jam absensi (masuk / pulang) secara manual
+   */
+  async updateTime(studentId, date, type, newTime) {
+    const [settings, student, allAttendance, customSchedules] = await Promise.all([
+      DB.getSettings(),
+      DB.getStudentById(studentId),
+      DB.getAttendance(),
+      DB.getCustomSchedules(),
+    ]);
+    if (!student) return { error: 'Siswa tidak ditemukan' };
+
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!timeRegex.test(newTime)) {
+      return { error: 'Format jam tidak valid (contoh: 08:00)' };
+    }
+
+    const todayRecords = allAttendance.filter(a => a.studentId === studentId && a.date === date);
+    const existingRecord = todayRecords.find(r => r.type === type);
+    const masukRecord = todayRecords.find(r => r.type === 'masuk');
+
+    const eff = Attendance.getEffectiveDay(student, date, customSchedules);
+    const activeShift = existingRecord?.shift || masukRecord?.shift || eff.shift || 'P';
+    const isSiang = activeShift === 'S';
+
+    let statusClass = 'info';
+    let statusLabel = type === 'masuk' ? 'Tepat Waktu' : 'Pulang';
+
+    const newTimeMins = timeToMinutes(newTime);
+    const toleransiMins = parseInt(settings.toleransi_menit) || 0;
+
+    if (type === 'masuk') {
+      const jamMasukStr = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
+      const jamMasukMins = timeToMinutes(jamMasukStr);
+
+      if (newTimeMins <= jamMasukMins + toleransiMins) {
+        statusClass = 'success';
+        statusLabel = 'Tepat Waktu (Manual)';
+      } else {
+        const terlambat = newTimeMins - jamMasukMins;
+        statusClass = 'warning';
+        statusLabel = `Terlambat ${terlambat}m (Manual)`;
+      }
+    } else if (type === 'pulang') {
+      const jamPulangStr = (isSiang ? settings.jam_pulang_siang : settings.jam_pulang) || '16:00';
+      const jamPulangMins = timeToMinutes(jamPulangStr);
+
+      if (newTimeMins < jamPulangMins) {
+        const selisih = jamPulangMins - newTimeMins;
+        statusClass = 'danger';
+        statusLabel = `Pulang Cepat ${selisih}m (Manual)`;
+      } else {
+        statusClass = 'info';
+        statusLabel = 'Pulang (Manual)';
+      }
+    }
+
+    const payload = {
+      studentId,
+      date,
+      type,
+      time: newTime,
+      status: statusClass,
+      statusLabel,
+      shift: activeShift,
+    };
+
+    const res = await DB.updateAttendance(payload);
+    if (res.error) return { error: res.error };
+    return { success: true, record: res.record, student, type, status: statusClass, statusLabel };
+  },
+
+  /**
    * Dapatkan status sel jadwal (synchronous, menerima cache)
    */
   getCellStatus(studentId, dateStr, allStudents, allAttendance, customSchedules) {
@@ -442,7 +539,7 @@ const Attendance = {
       return { code: 'A', label: 'Alpha', cls: 'cell-alpha' };
     }
 
-    const shift = masuk.shift || eff.shift;
+    const shift = (eff.custom && eff.custom.shift) ? eff.custom.shift : (masuk.shift || eff.shift);
     if (masuk.status === 'warning') return { code: 'T', label: 'Terlambat', cls: 'cell-terlambat', shift };
     return { code: shift, label: shift === 'P' ? 'Pagi' : 'Siang', cls: shift === 'P' ? 'cell-hadir cell-shift-p' : 'cell-hadir cell-shift-s' };
   },

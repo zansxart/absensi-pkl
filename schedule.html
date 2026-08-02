@@ -116,6 +116,8 @@
           <button class="btn btn-sm" style="background:var(--info-bg);color:var(--info);border:1px solid rgba(6,182,212,0.2);" onclick="applyShiftToSelection('S',false)">Set Siang</button>
           <button class="btn btn-sm" style="background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.2);" onclick="applyShiftToSelection(null,true)">Set Libur</button>
           <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);" onclick="applyShiftToSelection(null,false)">Hapus Rencana</button>
+          <button class="btn btn-primary btn-sm" onclick="applyIzinToSelection('izin')">Set Izin</button>
+          <button class="btn btn-secondary btn-sm" onclick="applyIzinToSelection('sakit')">Set Sakit</button>
           <button class="btn btn-secondary btn-sm" onclick="clearDateSelection()">Batal</button>
         </div>
       </div>
@@ -131,6 +133,62 @@
         <span><i class="sw cell-sakit">SK</i> Sakit</span>
         <span><i class="sw cell-libur">L</i> Libur</span>
         <span><i class="sw cell-none"></i> Belum berjalan</span>
+      </div>
+      <!-- INFO JAM KERJA AKTIF -->
+      <div id="schedule-wh-bar" style="display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;flex-wrap:wrap;font-size:11.5px;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <svg style="width:12px;height:12px;stroke:var(--accent);stroke-width:2.2;fill:none;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span style="font-weight:700;color:var(--text-primary);">Jam Kerja</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-weight:600;color:var(--success);display:flex;align-items:center;gap:3px;">
+            <svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Pagi
+          </span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);" id="sch-wh-pagi">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-weight:600;color:var(--info);display:flex;align-items:center;gap:3px;">
+            <svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Siang
+          </span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);" id="sch-wh-siang">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+          <span style="color:var(--text-muted);">Toleransi</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--warning);" id="sch-wh-toleransi">—</span>
+        </div>
+      </div>
+
+      <!-- Manual Izin (Jadwal) -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <h3 style="font-size:14px;">Input Izin Manual</h3>
+        </div>
+        <div class="card-body" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:14px 16px;">
+          <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0;">
+            <label class="form-label" style="margin-bottom:4px;">Pilih Siswa</label>
+            <select class="form-control" id="izin-student" style="font-size:13px;">
+              <option value="">-- Pilih siswa --</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:0 0 130px;margin-bottom:0;">
+            <label class="form-label" style="margin-bottom:4px;">Tanggal</label>
+            <input type="date" class="form-control" id="izin-date" style="font-size:13px;" />
+          </div>
+          <div class="form-group" style="flex:0 0 100px;margin-bottom:0;">
+            <label class="form-label" style="margin-bottom:4px;">Kategori</label>
+            <select class="form-control" id="izin-kategori" style="font-size:13px;">
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
+            <label class="form-label" style="margin-bottom:4px;">Keterangan</label>
+            <input type="text" class="form-control" id="izin-keterangan" placeholder="Misal: Acara keluarga, sakit..." style="font-size:13px;" />
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-izin" style="height:36px;padding:0 20px;margin-bottom:0;">Simpan Izin</button>
+        </div>
       </div>
 
       <!-- SCHEDULE GRID -->
@@ -276,15 +334,20 @@ async function applyShiftToSelection(shift, isOff) {
   if (selectedCells.size === 0) return;
   const schedules = await DB.getCustomSchedules();
 
+  const syncItems = [];
   for (const key of selectedCells) {
+    const i = key.indexOf('_');
+    const sid = key.slice(0, i), date = key.slice(i + 1);
     if (shift === null && isOff === false) {
       delete schedules[key]; // kembali ke default
     } else {
       schedules[key] = { shift, isOff };
     }
+    syncItems.push({ studentId: sid, dateStr: date, shift, isOff });
   }
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
+  await syncAttendanceShiftBulk(syncItems);
 
   const jumlah = selectedCells.size;
   const aksi = isOff ? 'Libur (Off)' : shift === null ? 'Default' : shift === 'P' ? 'Shift Pagi' : 'Shift Siang';
@@ -293,11 +356,53 @@ async function applyShiftToSelection(shift, isOff) {
   await renderSchedule();
 }
 
+async function applyIzinToSelection(kategori) {
+  if (selectedCells.size === 0) return;
+  const label = kategori === 'sakit' ? 'Sakit' : 'Izin';
+  const ket = await showCustomPrompt(`Tandai ${label} Massal`, `Masukkan keterangan ${label.toLowerCase()}:`, kategori === 'sakit' ? 'Misal: Demam, rawat inap...' : 'Misal: Acara keluarga...');
+  if (ket === null) return; // cancelled
+
+  const ok = await showCustomConfirm(`Tandai ${label} untuk ${selectedCells.size} kotak?`, 'Tindakan ini akan menimpa record hadir jika sudah ada. Lanjutkan?');
+  if (!ok) return;
+
+  const allAttendance = await DB.getAttendance();
+  let updatedAttendance = [...allAttendance];
+
+  for (const key of selectedCells) {
+    const i = key.indexOf('_');
+    const sid = key.slice(0, i), date = key.slice(i + 1);
+    
+    // Hapus record hari ini untuk siswa tersebut
+    updatedAttendance = updatedAttendance.filter(a => !(a.studentId === sid && a.date === date));
+    
+    updatedAttendance.push({
+      id: Math.random().toString(36).substring(2, 15),
+      studentId: sid,
+      date: date,
+      type: 'izin',
+      kategori: kategori === 'sakit' ? 'sakit' : 'izin',
+      timestamp: new Date().toISOString(),
+      time: '-',
+      status: 'info',
+      statusLabel: kategori === 'sakit' ? 'Sakit' : 'Izin',
+      keterangan: ket
+    });
+  }
+  
+  await DB.saveAttendance(updatedAttendance);
+  
+  showToast('success', `${label} Massal Tersimpan`, `Berhasil menandai ${selectedCells.size} jadwal sebagai ${label.toLowerCase()}`);
+  clearDateSelection();
+  await renderSchedule();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth() + 1;
+  document.getElementById('izin-date').value = getToday();
   await populateFilter();
+  await populateIzinStudents();
   await renderSchedule();
 });
 
@@ -341,11 +446,18 @@ async function renderSchedule() {
   DB._invalidate('students');
   DB._invalidate('attendance');
   DB._invalidate('schedules');
-  const [allStudents, allAttendance, customSchedules] = await Promise.all([
+  DB._invalidate('settings');
+  const [allStudents, allAttendance, customSchedules, settings] = await Promise.all([
     DB.getStudents(),
     DB.getAttendance(),
     DB.getCustomSchedules(),
+    DB.getSettings(),
   ]);
+
+  // Update jam kerja bar
+  document.getElementById('sch-wh-pagi').textContent = `${settings.jam_masuk || '08:00'} – ${settings.jam_pulang || '16:00'}`;
+  document.getElementById('sch-wh-siang').textContent = `${settings.jam_masuk_siang || '13:00'} – ${settings.jam_pulang_siang || '21:00'}`;
+  document.getElementById('sch-wh-toleransi').textContent = `${settings.toleransi_menit || 15} mnt`;
 
   let students = [...allStudents];
   if (filterStudent) students = students.filter(s => s.id === filterStudent);
@@ -456,8 +568,10 @@ async function showDetail(studentId, dateStr) {
         </div>
       `;
     }).join('');
+    const hasIzin = records.some(r => r.type === 'izin');
     attendanceHtml += `
-      <div style="display:flex;gap:8px;margin-top:8px;">
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        ${hasIzin ? `<button class="btn btn-success btn-sm" onclick="convertToHadirDate('${studentId}','${dateStr}')">Ubah ke Hadir (Absen Masuk)</button>` : ''}
         <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','izin')">Ubah ke Izin</button>
         <button class="btn btn-secondary btn-sm" onclick="markIzinDate('${studentId}','${dateStr}','sakit')">Ubah ke Sakit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteAttendanceDate('${studentId}','${dateStr}')">Hapus Absensi / Izin</button>
@@ -493,12 +607,107 @@ async function showDetail(studentId, dateStr) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+async function syncAttendanceShiftBulk(items) {
+  if (!items || items.length === 0) return;
+
+  const [allAttendance, settings, allStudents] = await Promise.all([
+    DB.getAttendance(),
+    DB.getSettings(),
+    DB.getStudents()
+  ]);
+
+  let modified = false;
+  let updatedAttendance = [...allAttendance];
+
+  for (const item of items) {
+    const { studentId, dateStr, shift, isOff } = item;
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) continue;
+
+    // Jika shift diatur (P/S) atau di-set Libur (Off), hapus record izin/sakit jika ada agar sel berubah dari I ke S/P/L
+    if (shift !== null || isOff) {
+      const hasIzin = updatedAttendance.some(a => a.studentId === studentId && a.date === dateStr && a.type === 'izin');
+      if (hasIzin) {
+        updatedAttendance = updatedAttendance.filter(a => !(a.studentId === studentId && a.date === dateStr && a.type === 'izin'));
+        modified = true;
+      }
+    }
+
+    updatedAttendance = updatedAttendance.map(a => {
+      if (a.studentId === studentId && a.date === dateStr && a.type !== 'izin') {
+        modified = true;
+        const targetShift = shift || student.shift || 'P';
+        const isSiang = targetShift === 'S';
+        let status = a.status;
+        let statusLabel = a.statusLabel;
+
+        if (a.type === 'masuk' && a.time && a.time !== '-') {
+          const timeMins = timeToMinutes(a.time);
+          const jamMasukStr = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
+          const jamMasukMins = timeToMinutes(jamMasukStr);
+          const toleransiMins = parseInt(settings.toleransi_menit) || 0;
+
+          if (timeMins <= jamMasukMins + toleransiMins) {
+            status = 'success';
+            statusLabel = a.manualEdit ? 'Tepat Waktu (Manual)' : 'Tepat Waktu';
+          } else {
+            const terlambat = timeMins - jamMasukMins;
+            status = 'warning';
+            statusLabel = a.manualEdit ? `Terlambat ${terlambat}m (Manual)` : `Terlambat ${terlambat} menit`;
+          }
+        }
+        return { ...a, shift: targetShift, status, statusLabel };
+      }
+      return a;
+    });
+  }
+
+  if (modified) {
+    await DB.saveAttendance(updatedAttendance);
+    DB._invalidate('attendance');
+  }
+}
+
+async function convertToHadirDate(studentId, dateStr) {
+  const [settings, student, customSchedules, attendanceList] = await Promise.all([
+    DB.getSettings(),
+    DB.getStudentById(studentId),
+    DB.getCustomSchedules(),
+    DB.getAttendance()
+  ]);
+  const eff = Attendance.getEffectiveDay(student, dateStr, customSchedules);
+  const isSiang = eff.shift === 'S';
+  const defaultTime = (isSiang ? settings.jam_masuk_siang : settings.jam_masuk) || '08:00';
+
+  let filtered = attendanceList.filter(a => !(a.studentId === studentId && a.date === dateStr));
+
+  const newRecord = {
+    id: generateId(),
+    studentId,
+    date: dateStr,
+    type: 'masuk',
+    timestamp: new Date().toISOString(),
+    time: defaultTime,
+    status: 'success',
+    statusLabel: 'Tepat Waktu (Manual)',
+    shift: eff.shift,
+    manualEdit: true
+  };
+  filtered.push(newRecord);
+  await DB.saveAttendance(filtered);
+  showToast('success', 'Status Diubah', 'Berhasil diubah dari Izin menjadi Hadir (Absen Masuk).');
+  await renderSchedule();
+  await showDetail(studentId, dateStr);
+}
+
 async function setCustomSchedule(studentId, dateStr, shift, isOff) {
   if (shift === null && isOff === false) {
     await DB.saveCustomSchedule(studentId, dateStr, null);
+    await syncAttendanceShiftBulk([{ studentId, dateStr, shift: null, isOff: false }]);
     showToast('success', 'Rencana Dihapus', 'Jadwal kembali ke pengaturan default.');
   } else {
     await DB.saveCustomSchedule(studentId, dateStr, { shift, isOff });
+    await syncAttendanceShiftBulk([{ studentId, dateStr, shift, isOff }]);
     showToast('success', 'Jadwal Diperbarui', 'Rencana berhasil disimpan.');
   }
   DB._invalidate('schedules');
@@ -554,18 +763,18 @@ async function setCustomScheduleBulkDay(dateStr, shift, isOff) {
   const students = await DB.getStudents();
   let schedules = await DB.getCustomSchedules();
   
+  const syncItems = [];
   for (const s of students) {
     delete schedules[`${s.id}_${dateStr}`];
-  }
-  
-  if (shift !== null || isOff !== false) {
-    for (const s of students) {
+    if (shift !== null || isOff !== false) {
       schedules[`${s.id}_${dateStr}`] = { shift, isOff };
     }
+    syncItems.push({ studentId: s.id, dateStr, shift, isOff });
   }
   
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
+  await syncAttendanceShiftBulk(syncItems);
   await renderSchedule();
   
   showToast('success', 'Jadwal Serentak Diperbarui', `Berhasil mengatur jadwal semua siswa untuk tanggal ${formatDate(dateStr)}.`);
@@ -580,6 +789,7 @@ async function setCustomSchedulePatternAll(startDateStr, shiftA, daysA, shiftB, 
 
   let currentShift = shiftA;
   let counter = 0;
+  const syncItems = [];
 
   for (let d = startDay; d <= days; d++) {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -598,6 +808,7 @@ async function setCustomSchedulePatternAll(startDateStr, shiftA, daysA, shiftB, 
     // Tetapkan shift
     for (const s of students) {
       schedules[`${s.id}_${dateStr}`] = { shift: currentShift, isOff: false };
+      syncItems.push({ studentId: s.id, dateStr, shift: currentShift, isOff: false });
     }
 
     // Tambah counter rotasi
@@ -611,6 +822,7 @@ async function setCustomSchedulePatternAll(startDateStr, shiftA, daysA, shiftB, 
   
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
+  await syncAttendanceShiftBulk(syncItems);
   await renderSchedule();
   
   showToast('success', 'Pola Rotasi Diterapkan', `Berhasil mengatur jadwal rotasi semua siswa mulai dari tanggal ${formatDate(startDateStr)}.`);
@@ -654,6 +866,7 @@ async function showBulkStudentPlanner(studentId) {
 async function setCustomScheduleBulkStudent(studentId, shift, isOff) {
   let schedules = await DB.getCustomSchedules();
   const days = getDaysInMonth(currentYear, currentMonth);
+  const syncItems = [];
   
   for (let d = 1; d <= days; d++) {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -661,10 +874,12 @@ async function setCustomScheduleBulkStudent(studentId, shift, isOff) {
     if (shift !== null || isOff !== false) {
       schedules[`${studentId}_${dateStr}`] = { shift, isOff };
     }
+    syncItems.push({ studentId, dateStr, shift, isOff });
   }
   
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
+  await syncAttendanceShiftBulk(syncItems);
   await renderSchedule();
   
   showToast('success', 'Jadwal 1 Bulan Diperbarui', `Berhasil mengatur jadwal sebulan penuh.`);
@@ -677,6 +892,7 @@ async function setCustomSchedulePattern(studentId, shiftA, daysA, shiftB, daysB)
   
   let currentShift = shiftA;
   let counter = 0;
+  const syncItems = [];
 
   for (let d = 1; d <= days; d++) {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -692,6 +908,7 @@ async function setCustomSchedulePattern(studentId, shiftA, daysA, shiftB, daysB)
     
     // Tetapkan shift
     schedules[`${studentId}_${dateStr}`] = { shift: currentShift, isOff: false };
+    syncItems.push({ studentId, dateStr, shift: currentShift, isOff: false });
 
     // Tambah counter rotasi
     counter++;
@@ -704,6 +921,7 @@ async function setCustomSchedulePattern(studentId, shiftA, daysA, shiftB, daysB)
   
   await DB.saveCustomSchedules(schedules);
   DB._invalidate('schedules');
+  await syncAttendanceShiftBulk(syncItems);
   await renderSchedule();
   
   showToast('success', 'Pola Rotasi Diterapkan', `Berhasil mengatur jadwal berulang ${daysA} hari ${shiftA === 'P'?'Pagi':'Siang'} dan ${daysB} hari ${shiftB === 'P'?'Pagi':'Siang'}.`);
@@ -858,6 +1076,53 @@ function closeDialog() {
   const modal = document.getElementById('modal-dialog');
   modal.classList.remove('active');
 }
+
+// =================== IZIN MANUAL (SCHEDULE) ===================
+async function populateIzinStudents() {
+  const sel = document.getElementById('izin-student');
+  if (!sel) return;
+  try {
+    const students = await DB.getStudents();
+    while (sel.options.length > 1) sel.remove(1);
+    students.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+document.getElementById('btn-izin').addEventListener('click', async () => {
+  const studentId = document.getElementById('izin-student').value;
+  const dateStr = document.getElementById('izin-date').value;
+  const kategori = document.getElementById('izin-kategori').value;
+  const keterangan = document.getElementById('izin-keterangan').value.trim();
+
+  if (!studentId || !dateStr) {
+    showToast('warning', 'Validasi', 'Silakan pilih siswa dan tanggal');
+    return;
+  }
+
+  let result = await Attendance.markIzin(studentId, dateStr, keterangan, kategori);
+  if (result.needConfirm) {
+    const ok = await showCustomConfirm('Timpa Record Hadir?', 'Siswa sudah punya record hadir di tanggal ini. Tandai izin akan menghapus record tersebut. Lanjutkan?');
+    if (!ok) return;
+    result = await Attendance.markIzin(studentId, dateStr, keterangan, kategori, true);
+  }
+
+  if (result.error) {
+    showToast('error', 'Gagal', result.error);
+    return;
+  }
+
+  const student = await DB.getStudentById(studentId);
+  const label = kategori === 'sakit' ? 'Sakit' : 'Izin';
+  showToast('success', `${label} Tersimpan`, `${student?.name || 'Siswa'} berhasil ditandai ${label.toLowerCase()}`);
+  document.getElementById('izin-keterangan').value = '';
+  document.getElementById('izin-student').value = '';
+  await renderSchedule();
+});
 
 document.getElementById('btn-print-schedule').addEventListener('click', () => { window.print(); });
 </script>

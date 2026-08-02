@@ -17,16 +17,17 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  // API tidak pernah di-cache — data absensi harus selalu live
+  // Hanya proses request HTTP & HTTPS (abaikan chrome-extension, API, & non-GET)
+  if (!url.protocol.startsWith('http')) return;
   if (url.pathname.startsWith('/api/')) return;
   if (e.request.method !== 'GET') return;
 
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        if (res.ok) {
+        if (res.ok && (res.type === 'basic' || res.type === 'cors')) {
           const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
         }
         return res;
       })

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -159,6 +159,41 @@
                 </div>
               </div>
               <button class="btn btn-primary btn-sm" id="btn-save-settings" style="width:100%;justify-content:center;">Simpan Pengaturan</button>
+              <div class="divider"></div>
+              <div id="active-schedule-preview" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:4px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <svg style="width:14px;height:14px;stroke:var(--success);stroke-width:2.2;fill:none;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);">Jam Kerja Aktif (Tersimpan di Server)</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;display:flex;align-items:center;gap:4px;">
+                      <svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                      Shift Pagi
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-primary);" id="preview-pagi-masuk">—</div>
+                    <div style="font-size:10px;color:var(--text-muted);">s/d</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-primary);" id="preview-pagi-pulang">—</div>
+                  </div>
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;display:flex;align-items:center;gap:4px;">
+                      <svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      Shift Siang
+                    </div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-primary);" id="preview-siang-masuk">—</div>
+                    <div style="font-size:10px;color:var(--text-muted);">s/d</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-primary);" id="preview-siang-pulang">—</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);border-radius:6px;">
+                  <span style="font-size:11px;color:var(--text-muted);">Toleransi keterlambatan:</span>
+                  <strong style="font-size:12px;color:var(--success);" id="preview-toleransi">—</strong>
+                </div>
+                <p style="font-size:10.5px;color:var(--text-muted);margin-top:8px;line-height:1.5;display:flex;align-items:flex-start;gap:6px;">
+                  <svg style="width:13px;height:13px;stroke:var(--success);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Perubahan jam kerja <strong>langsung berlaku</strong> ke Scanner, Jadwal, Dashboard, dan seluruh perhitungan absensi (tepat waktu / terlambat / pulang cepat).</span>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -217,6 +252,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   await updateInfo();
+  updatePreview();
 });
 
 async function loadSettings() {
@@ -225,10 +261,28 @@ async function loadSettings() {
   document.getElementById('s-tahun-ajaran').value = s.tahun_ajaran || '';
   document.getElementById('s-jam-masuk').value = s.jam_masuk || '08:00';
   document.getElementById('s-jam-pulang').value = s.jam_pulang || '16:00';
-  document.getElementById('s-jam-masuk-siang').value = s.jam_masuk_siang || '13:00';
+  document.getElementById('s-jam-masuk-siang').value = s.jam_masuk_siang || '14:00';
   document.getElementById('s-jam-pulang-siang').value = s.jam_pulang_siang || '21:00';
   document.getElementById('s-toleransi').value = s.toleransi_menit || 15;
 }
+
+function updatePreview() {
+  const pm = document.getElementById('s-jam-masuk').value || '08:00';
+  const pp = document.getElementById('s-jam-pulang').value || '16:00';
+  const sm = document.getElementById('s-jam-masuk-siang').value || '13:00';
+  const sp = document.getElementById('s-jam-pulang-siang').value || '21:00';
+  const tol = document.getElementById('s-toleransi').value || '15';
+  document.getElementById('preview-pagi-masuk').textContent = pm;
+  document.getElementById('preview-pagi-pulang').textContent = pp;
+  document.getElementById('preview-siang-masuk').textContent = sm;
+  document.getElementById('preview-siang-pulang').textContent = sp;
+  document.getElementById('preview-toleransi').textContent = tol + ' menit';
+}
+
+// Update preview saat input berubah (real-time)
+['s-jam-masuk','s-jam-pulang','s-jam-masuk-siang','s-jam-pulang-siang','s-toleransi'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
 
 async function updateInfo() {
   const [students, attendance] = await Promise.all([DB.getStudents(), DB.getAttendance()]);
@@ -284,6 +338,7 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
   DB._invalidate('settings');
   document.getElementById('s-pin-new').value = '';
   document.getElementById('s-pin-confirm').value = '';
+  updatePreview();
   showToast('success', 'Tersimpan', 'Pengaturan berhasil diperbarui');
 });
 

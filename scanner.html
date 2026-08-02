@@ -119,6 +119,32 @@
         <span id="scan-status-text">Kamera belum aktif — klik <strong>Mulai Kamera</strong></span>
       </div>
 
+      <!-- INFO JAM KERJA AKTIF -->
+      <div id="scanner-wh-bar" style="display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;flex-wrap:wrap;font-size:11.5px;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <svg style="width:12px;height:12px;stroke:var(--accent);stroke-width:2.2;fill:none;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span style="font-weight:700;color:var(--text-primary);">Jam Kerja</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-weight:600;color:var(--success);display:flex;align-items:center;gap:3px;">
+            <svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Pagi
+          </span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);" id="swh-pagi">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-weight:600;color:var(--info);display:flex;align-items:center;gap:3px;">
+            <svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Siang
+          </span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);" id="swh-siang">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+          <span style="color:var(--text-muted);">Toleransi</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--warning);" id="swh-toleransi">—</span>
+        </div>
+      </div>
+
       <div class="scanner-container">
 
         <!-- CAMERA BOX -->
@@ -246,6 +272,10 @@
               <div class="result-time" id="result-time">--:--</div>
               <div class="result-status" id="result-status-badge">-</div>
               <div id="result-detail" style="font-size:12px;color:var(--text-muted);"></div>
+              <button class="btn btn-secondary btn-sm" id="btn-edit-result-time" style="width:100%;margin-top:12px;display:none;align-items:center;justify-content:center;gap:6px;font-size:12px;">
+                <svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Jam Scan Ini
+              </button>
             </div>
             <div id="result-error" style="display:none;">
               <div style="margin-bottom:12px;display:flex;justify-content:center;color:var(--danger);">
@@ -311,11 +341,79 @@
             </div>
           </div>
 
+          <!-- Input / Edit Jam Manual -->
+          <div class="card" style="margin-top:12px;">
+            <div class="card-header">
+              <h3 style="font-size:14px;display:flex;align-items:center;gap:6px;">
+                <svg style="width:15px;height:15px;stroke:var(--accent);fill:none;stroke-width:2;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Input / Edit Jam Manual
+              </h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Pilih Siswa</label>
+                <select class="form-control" id="manual-student" style="font-size:13px;">
+                  <option value="">-- Pilih siswa --</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <div class="form-group" style="flex:1;margin-bottom:0;">
+                  <label class="form-label">Tipe</label>
+                  <select class="form-control" id="manual-type" style="font-size:13px;">
+                    <option value="masuk">Masuk</option>
+                    <option value="pulang">Pulang</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:1;margin-bottom:0;">
+                  <label class="form-label">Jam (HH:mm)</label>
+                  <input type="time" class="form-control" id="manual-time" style="font-size:13px;font-weight:600;" />
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Tanggal</label>
+                <input type="date" class="form-control" id="manual-date" style="font-size:13px;" />
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-manual-time" style="width:100%;">
+                Simpan Jam Absen
+              </button>
+            </div>
+          </div>
+
         </div><!-- end scanner-result -->
       </div><!-- end scanner-container -->
 
     </div>
   </main>
+<!-- MODAL EDIT JAM ABSENSI -->
+<div class="modal-overlay" id="modal-edit-time" style="display:none;">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3 style="display:flex;align-items:center;gap:8px;font-size:15px;">
+        <svg style="width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Edit Jam Absen Manual
+      </h3>
+      <button class="btn-close" id="modal-edit-time-close">&#10006;</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <input type="hidden" id="modal-edit-student-id" />
+      <input type="hidden" id="modal-edit-date" />
+      <input type="hidden" id="modal-edit-type" />
+      
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div id="modal-edit-student-name" style="font-weight:700;font-size:14px;color:var(--text-primary);">-</div>
+        <div id="modal-edit-info" style="font-size:12px;color:var(--text-muted);margin-top:2px;">-</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Jam Baru (HH:mm)</label>
+        <input type="time" class="form-control" id="modal-edit-time-input" style="font-size:16px;font-weight:700;text-align:center;height:42px;" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-edit-time-cancel">Batal</button>
+      <button class="btn btn-primary" id="modal-edit-time-save">Simpan Perubahan</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast-container" id="toast-container"></div>
@@ -336,9 +434,25 @@ let scanHintTimer = null;
 let scanFailureCount = 0;
 let lastFailureStatusAt = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
+let lastScanResultContext = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
   populateIzinStudents();
+  populateManualStudents();
   renderScanLog();
+  
+  const manualDate = document.getElementById('manual-date');
+  if (manualDate) manualDate.value = getToday();
+  const manualTime = document.getElementById('manual-time');
+  if (manualTime) manualTime.value = getCurrentTime().slice(0, 5).replace('.', ':');
+
+  // Load jam kerja aktif dari server
+  try {
+    const settings = await DB.getSettings();
+    document.getElementById('swh-pagi').textContent = `${settings.jam_masuk || '08:00'} – ${settings.jam_pulang || '16:00'}`;
+    document.getElementById('swh-siang').textContent = `${settings.jam_masuk_siang || '13:00'} – ${settings.jam_pulang_siang || '21:00'}`;
+    document.getElementById('swh-toleransi').textContent = `${settings.toleransi_menit || 15} mnt`;
+  } catch(e) {}
   // Coba muat kamera saat startup jika izin sudah ada
   initCameraOptions();
 });
@@ -857,20 +971,25 @@ function showScanResult(result) {
   const defaultEl = document.getElementById('result-default');
   const dataEl = document.getElementById('result-data');
   const errorEl = document.getElementById('result-error');
+  const editBtn = document.getElementById('btn-edit-result-time');
 
   if (result.error) {
     defaultEl.style.display = 'none';
     dataEl.style.display = 'none';
     errorEl.style.display = 'block';
+    if (editBtn) editBtn.style.display = 'none';
     document.getElementById('result-error-msg').textContent = result.error;
     showToast('warning', 'Scan Gagal', result.error);
     return;
   }
 
   const { student, type, status, statusLabel, record } = result;
+  lastScanResultContext = { studentId: student.id, date: record.date || getToday(), type, time: record.time, student };
+
   defaultEl.style.display = 'none';
   errorEl.style.display = 'none';
   dataEl.style.display = 'block';
+  if (editBtn) editBtn.style.display = 'inline-flex';
 
   // Avatar
   const avatarWrap = document.getElementById('result-avatar-wrap');
@@ -922,6 +1041,13 @@ function showScanResult(result) {
   showToast(toastType, `${student.name} — ${type === 'masuk' ? 'Masuk' : 'Pulang'}`, statusLabel);
 }
 
+// Handler tombol edit jam pada kartu hasil scan
+document.getElementById('btn-edit-result-time')?.addEventListener('click', () => {
+  if (!lastScanResultContext) return;
+  const { studentId, date, type, time } = lastScanResultContext;
+  openEditModal(studentId, date, type, time);
+});
+
 // =================== LOG ===================
 async function renderScanLog() {
   const today = getToday();
@@ -946,26 +1072,157 @@ async function renderScanLog() {
     const s = allStudents.find(st => st.id === a.studentId);
     if (!s) return '';
     const avatarHtml = s.photo
-      ? `<img src="${s.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />`
-      : `<div class="log-avatar">${getInitials(s.name)}</div>`;
+      ? `<img src="${s.photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" />`
+      : `<div class="log-avatar" style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;">${getInitials(s.name)}</div>`;
     
-    const typeLabel = a.type === 'masuk' 
-      ? `<span style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Masuk</span>` 
-      : `<span style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Pulang</span>`;
+    const typeIcon = a.type === 'masuk' 
+      ? `<svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` 
+      : `<svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2.2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`;
     
     const cls = a.status === 'warning' ? 'badge-warning' : a.type === 'pulang' ? 'badge-info' : 'badge-success';
     return `
-      <div class="log-item">
-        ${avatarHtml}
-        <div class="log-info">
-          <div class="log-name">${s.name}</div>
-          <div class="log-time" style="display:flex;align-items:center;gap:6px;">${typeLabel} — ${a.time}</div>
+      <div class="log-item" style="padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;">
+        <!-- Baris 1: Avatar, Nama, Tombol Edit -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+            ${avatarHtml}
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+          </div>
+          <button onclick="openEditModal('${a.studentId}', '${a.date}', '${a.type}', '${a.time}')" class="btn btn-secondary btn-sm" style="padding:3px 8px;font-size:11px;gap:4px;cursor:pointer;flex-shrink:0;" title="Edit Jam">
+            <svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
         </div>
-        <span class="badge ${cls} log-status">${a.statusLabel}</span>
+        <!-- Baris 2: Tipe & Jam Absen (Kiri), Badge Status (Kanan) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:46px;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted);white-space:nowrap;">
+            ${typeIcon}
+            <span>${a.type === 'masuk' ? 'Masuk' : 'Pulang'} — <strong style="color:var(--text-primary);font-family:'JetBrains Mono',monospace;">${a.time}</strong></span>
+          </div>
+          <span class="badge ${cls}" style="font-size:10.5px;padding:2px 8px;flex-shrink:0;">${a.statusLabel}</span>
+        </div>
       </div>
     `;
   }).join('');
 }
+
+// =================== EDIT MODAL LOGIC ===================
+async function openEditModal(studentId, date, type, currentTime) {
+  const student = await DB.getStudentById(studentId);
+  if (!student) return;
+
+  document.getElementById('modal-edit-student-id').value = studentId;
+  document.getElementById('modal-edit-date').value = date;
+  document.getElementById('modal-edit-type').value = type;
+
+  document.getElementById('modal-edit-student-name').textContent = student.name;
+  const labelTipe = type === 'masuk' ? 'Absen Masuk' : 'Absen Pulang';
+  document.getElementById('modal-edit-info').textContent = `${labelTipe} • Tanggal ${formatDateShort(date)}`;
+  document.getElementById('modal-edit-time-input').value = currentTime || '08:00';
+
+  const modal = document.getElementById('modal-edit-time');
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('modal-edit-time');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+}
+
+document.getElementById('modal-edit-time-close')?.addEventListener('click', closeEditModal);
+document.getElementById('modal-edit-time-cancel')?.addEventListener('click', closeEditModal);
+
+document.getElementById('modal-edit-time-save')?.addEventListener('click', async () => {
+  const studentId = document.getElementById('modal-edit-student-id').value;
+  const date = document.getElementById('modal-edit-date').value;
+  const type = document.getElementById('modal-edit-type').value;
+  const newTime = document.getElementById('modal-edit-time-input').value;
+
+  if (!newTime) {
+    showToast('warning', 'Jam Kosong', 'Silakan masukkan jam absensi');
+    return;
+  }
+
+  const res = await Attendance.updateTime(studentId, date, type, newTime);
+  if (res.error) {
+    showToast('error', 'Gagal Edit Jam', res.error);
+    return;
+  }
+
+  showToast('success', 'Jam Absen Diperbarui', `${res.student.name} — ${type === 'masuk' ? 'Masuk' : 'Pulang'} jam ${newTime}`);
+  closeEditModal();
+  await renderScanLog();
+
+  // Update kartu hasil jika siswa yang discan sama
+  if (lastScanResultContext && lastScanResultContext.studentId === studentId && lastScanResultContext.date === date && lastScanResultContext.type === type) {
+    showScanResult({
+      student: res.student,
+      type: res.type,
+      status: res.status,
+      statusLabel: res.statusLabel,
+      record: res.record,
+    });
+  }
+});
+
+// =================== MANUAL EDIT FORM (SIDEBAR) ===================
+async function populateManualStudents() {
+  const sel = document.getElementById('manual-student');
+  if (!sel) return;
+  try {
+    const students = await DB.getStudents();
+    while (sel.options.length > 1) sel.remove(1);
+    students.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+document.getElementById('btn-manual-time')?.addEventListener('click', async () => {
+  const studentId = document.getElementById('manual-student').value;
+  const type = document.getElementById('manual-type').value;
+  const newTime = document.getElementById('manual-time').value;
+  const date = document.getElementById('manual-date').value || getToday();
+
+  if (!studentId) {
+    showToast('warning', 'Pilih Siswa', 'Silakan pilih siswa terlebih dahulu');
+    return;
+  }
+  if (!newTime) {
+    showToast('warning', 'Jam Kosong', 'Silakan tentukan jam absensi');
+    return;
+  }
+
+  const res = await Attendance.updateTime(studentId, date, type, newTime);
+  if (res.error) {
+    showToast('error', 'Gagal Simpan', res.error);
+    return;
+  }
+
+  showToast('success', 'Jam Absen Tersimpan', `${res.student.name} — ${type === 'masuk' ? 'Masuk' : 'Pulang'} jam ${newTime}`);
+  document.getElementById('manual-student').value = '';
+  await renderScanLog();
+
+  // Jika hari ini dan siswa yang sama, update kartu hasil scan
+  if (date === getToday()) {
+    showScanResult({
+      student: res.student,
+      type: res.type,
+      status: res.status,
+      statusLabel: res.statusLabel,
+      record: res.record,
+    });
+  }
+});
 
 // =================== STATUS BAR ===================
 function setStatusBar(type, msg) {
@@ -989,6 +1246,53 @@ function playBeep() {
     osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
   } catch (e) { /* silent */ }
 }
+
+// =================== IZIN MANUAL ===================
+async function populateIzinStudents() {
+  const sel = document.getElementById('izin-student');
+  if (!sel) return;
+  try {
+    const students = await DB.getStudents();
+    while (sel.options.length > 1) sel.remove(1);
+    students.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+document.getElementById('btn-izin')?.addEventListener('click', async () => {
+  const studentId = document.getElementById('izin-student').value;
+  const kategori = document.getElementById('izin-kategori').value;
+  const keterangan = document.getElementById('izin-keterangan').value.trim();
+
+  if (!studentId) {
+    showToast('warning', 'Pilih Siswa', 'Silakan pilih siswa terlebih dahulu');
+    return;
+  }
+
+  const today = getToday();
+  let result = await Attendance.markIzin(studentId, today, keterangan, kategori);
+
+  if (result.needConfirm) {
+    if (!confirm('Siswa sudah punya record hadir hari ini. Tandai izin akan menghapus record tersebut. Lanjutkan?')) return;
+    result = await Attendance.markIzin(studentId, today, keterangan, kategori, true);
+  }
+
+  if (result.error) {
+    showToast('error', 'Gagal', result.error);
+    return;
+  }
+
+  const student = await DB.getStudentById(studentId);
+  const label = kategori === 'sakit' ? 'Sakit' : 'Izin';
+  showToast('success', `${label} Tersimpan`, `${student?.name || 'Siswa'} berhasil ditandai ${label.toLowerCase()}`);
+  document.getElementById('izin-keterangan').value = '';
+  document.getElementById('izin-student').value = '';
+  await renderScanLog();
+});
 </script>
 </body>
 </html>
