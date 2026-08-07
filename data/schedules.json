@@ -316,7 +316,7 @@
     "isOff": false
   },
   "mrsydlma9gu1c_2026-08-07": {
-    "shift": "S",
+    "shift": "P",
     "isOff": false
   },
   "mrsyeqlmaojs5_2026-08-07": {
@@ -697,6 +697,10 @@
   },
   "mrsydlma9gu1c_2026-08-02": {
     "shift": "S",
+    "isOff": false
+  },
+  "mrsydlma9gu1c_2026-08-10": {
+    "shift": "P",
     "isOff": false
   }
 }
